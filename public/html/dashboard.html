@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zabbix Dashboard</title>
+    <link rel="stylesheet" href="../css/dashboard.css" />
+  </head>
+  <body>
+    <!-- Top Navigation -->
+    <nav class="navbar">
+      <div class="nav-item active" data-tab="users">Users</div>
+      <div class="nav-item" data-tab="groups">User Groups</div>
+      <div class="nav-item" data-tab="dashboards">Dashboards</div>
+      <div class="nav-item" data-tab="settings">Settings</div>
+    </nav>
+
+    <button id="addUserBtn">+ Add User</button>
+
+    <!-- Main Content -->
+    <main class="content">
+      <div id="users" class="tab-content active">
+        <h2>Users</h2>
+        <table id="usersTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Name</th>
+              <th>SurName</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="groups" class="tab-content">
+        <h2>User Groups</h2>
+        <p>Coming next.</p>
+      </div>
+
+      <div id="dashboards" class="tab-content">
+        <h2>Dashboards</h2>
+        <p>Coming next.</p>
+      </div>
+
+      <div id="settings" class="tab-content">
+        <h2>Settings</h2>
+        <p>Coming later.</p>
+      </div>
+    </main>
+
+    <div id="userModal" class="modal hidden">
+      <div class="modal-content">
+        <form id="userForm">
+          <input type="hidden" id="userid" />
+
+          <label>Username</label>
+          <input id="username" required />
+
+          <label>Password</label>
+          <input id="passwd" type="password" />
+
+          <label>Name</label>
+          <input id="name" />
+
+          <label>Surname</label>
+          <input id="surname" />
+
+          <label>Role</label>
+          <select id="roleId"></select>
+
+          <div class="actions">
+            <button type="submit" id="submitBtn">Create</button>
+            <button type="button" id="cancelBtn">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="../js/dashboard.js"></script>
+  </body>
+</html>
