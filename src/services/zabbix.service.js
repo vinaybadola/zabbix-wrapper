@@ -15,7 +15,7 @@ export default class ZabbixService {
         params,
         id: this.requestId++
       };
-  
+
       const headers = {
         "Content-Type": "application/json"
       };
@@ -121,7 +121,8 @@ export default class ZabbixService {
     return await this.rpcCall({
       method: "user.get",
       params: {
-        output: ["userid", "username", "name", "surname", "roleid"]
+        output: ["userid", "username", "name", "surname", "roleid"],
+        selectRole: ["roleid", "name"]
       },
       authToken
     });
@@ -256,6 +257,29 @@ export default class ZabbixService {
       updateResult,
       verifyResult
     };
+  }
+
+  static async updateUser({ authToken, payload }) {
+    return await this.rpcCall({
+      method: "user.update",
+      params: payload,
+      authToken
+    });
+  }
+
+  async deleteUser({ authToken, userid }) {
+    try {
+      const response = await this.makeRequest('user.delete', authToken, [userid]);
+
+      if (response.error) {
+        throw new Error(response.error.data || 'Failed to delete user');
+      }
+
+      return response.result;
+    } catch (err) {
+      console.error(`Zabbix API deleteUser error: ${err.message}`);
+      throw err;
+    }
   }
 
 }

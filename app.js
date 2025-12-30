@@ -5,6 +5,7 @@ import securityMiddleware from "./middlewares/security.middleware.js";
 const app = express();
 
 securityMiddleware(app);
+app.use(express.static("public"));
 
 app.use("/api/zabbix/v1", zabbixRoutes);
 

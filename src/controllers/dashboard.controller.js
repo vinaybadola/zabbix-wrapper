@@ -1,6 +1,6 @@
 import ZabbixDashboardService from "../services/zabbix.dashboard.service.js";
 
-export default class ZabbixDashboardController {
+export default class DashboardController {
 
   static createClientTrafficDashboard = async (req, res, next) => {
     try {

@@ -1,28 +1,35 @@
 import { Router } from "express";
-import ZabbixController from "../controllers/zabbix.controller.js";
+import HostController from "../controllers/host.controller.js";
 import { zabbixSessionMiddleware } from "../../middlewares/zabbix.session.middleware.js";
-import ZabbixDashboardController from "../controllers/zabbix.dashboard.controller.js";
+import DashboardController from "../controllers/dashboard.controller.js";
+import UserController from "../controllers/user.controller.js";
+import AuthController from "../controllers/auth.controller.js";
+import UserGroupController from "../controllers/user.groups.controller.js";
 
 const router = Router();
 
-router.post("/login", ZabbixController.login);
+router.post("/login", AuthController.login);
 
 router.use(zabbixSessionMiddleware);
 
-router.get("/hosts", ZabbixController.getHosts);
-router.post("/hosts/create", ZabbixController.createHost);
-router.post("/host-groups", ZabbixController.createHostGroup);
-router.post("/host-groups/add-host", ZabbixController.addHostToGroup);
+router.post("/logout", AuthController.logout);
+router.get("/roles/", AuthController.getAllRoles);
 
-router.get("/users/", ZabbixController.getAllUsers);
-router.get("/roles/", ZabbixController.getAllRoles);
-router.post("/user/submit", ZabbixController.createClientUser);
+router.get("/hosts", HostController.getHosts);
+router.post("/hosts/create", HostController.createHost);
+router.post("/host-groups", HostController.createHostGroup);
+router.post("/host-groups/add-host", HostController.addHostToGroup);
 
-router.get("/users/groups", ZabbixController.userGroups);
-router.get("/hosts/groups", ZabbixController.hostGroups);
-router.post("/user/groups/submit", ZabbixController.createClientUserGroup);
-router.put("/user/groups/permissions", ZabbixController.updateUserGroupPermissions);
+router.post("/user/submit", UserController.createClientUser);
+router.get("/users/", UserController.getAllUsers);
+router.put("/user/modify", UserController.updateClientUser);
+router.delete('/user/delete', UserController.deleteClientUser);
 
-router.post("/dashboards/client-traffic",ZabbixDashboardController.createClientTrafficDashboard);
+router.get("/users/groups", UserGroupController.userGroups);
+router.get("/hosts/groups", UserGroupController.hostGroups);
+router.post("/user/groups/submit", UserGroupController.createClientUserGroup);
+router.put("/user/groups/permissions", UserGroupController.updateUserGroupPermissions);
+
+router.post("/dashboards/client-traffic",DashboardController.createClientTrafficDashboard);
 
 export default router;
