@@ -93,6 +93,33 @@ export default class UserController {
         }
     }
 
+    // static deleteClientUser = async (req, res, next) => {
+    //     try {
+    //         const { userid } = req.body;
+
+    //         if (!userid) {
+    //             return res.status(400).json({
+    //                 success: false,
+    //                 message: "userid is required for deletion"
+    //             });
+    //         }
+
+    //         await zabbixService.deleteUser({
+    //             authToken: req.zabbix.authToken,
+    //             userid: parseInt(userid)
+    //         });
+
+    //         return res.status(200).json({
+    //             success: true,
+    //             message: "User deleted successfully"
+    //         });
+
+    //     } catch (err) {
+    //         console.error(`Error deleting user: ${err.message}`);
+    //         next(err);
+    //     }
+    // };
+
     static deleteClientUser = async (req, res, next) => {
         try {
             const { userid } = req.body;
@@ -104,6 +131,7 @@ export default class UserController {
                 });
             }
 
+            // Call static deleteUser method
             await zabbixService.deleteUser({
                 authToken: req.zabbix.authToken,
                 userid: parseInt(userid)
@@ -116,7 +144,11 @@ export default class UserController {
 
         } catch (err) {
             console.error(`Error deleting user: ${err.message}`);
-            next(err);
+            return res.status(500).json({
+                success: false,
+                message: err.message || "Internal Server Error"
+            });
         }
     };
+  
 }

@@ -10,16 +10,15 @@ const submitBtn = document.getElementById("submitBtn");
 const roleSelect = document.getElementById("roleId");
 const cancelBtn = document.querySelector('.actions button[type="button"]');
 
-// Load roles for dropdown
+// Load roles
 export const loadRoles = async () => {
     try {
-        const response = await fetch('http://localhost:8009/api/zabbix/v1/roles', {
+        const res = await fetch('http://localhost:8009/api/zabbix/v1/roles', {
             method: "GET",
             credentials: "include"
         });
-        
-        if (response.ok) {
-            roles = await response.json();
+        if (res.ok) {
+            roles = await res.json();
             populateRoleDropdown();
         }
     } catch (err) {
@@ -37,7 +36,7 @@ const populateRoleDropdown = () => {
     });
 };
 
-// Open modal for creating user
+// Open modal
 export const openCreateUserModal = () => {
     mode = "create";
     form.reset();
@@ -47,22 +46,15 @@ export const openCreateUserModal = () => {
     modal.classList.remove("hidden");
 };
 
-// Open modal for editing user
 export const openEditUserModal = (user) => {
     mode = "update";
-    
     document.getElementById("userid").value = user.userid;
     document.getElementById("username").value = user.username;
     document.getElementById("name").value = user.name || '';
     document.getElementById("surname").value = user.surname || '';
     document.getElementById("passwd").required = false;
     document.getElementById("passwd").placeholder = "Leave blank to keep current password";
-    
-    // Set role if available
-    if (user.role && user.role.roleid) {
-        document.getElementById("roleId").value = user.role.roleid;
-    }
-    
+    if (user.role?.roleid) roleSelect.value = user.role.roleid;
     submitBtn.textContent = "Update User";
     modal.classList.remove("hidden");
 };
@@ -73,51 +65,36 @@ export const closeModal = () => {
     form.reset();
 };
 
-// Handle form submission
+// Submit form
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
     const userData = {
         username: document.getElementById("username").value,
         passwd: document.getElementById("passwd").value,
         name: document.getElementById("name").value,
         surname: document.getElementById("surname").value,
-        roleId: document.getElementById("roleId").value
+        roleId: roleSelect.value
     };
-    
-    // Add userid for update
     if (mode === "update") {
         userData.userid = document.getElementById("userid").value;
-        if (!userData.passwd) {
-            delete userData.passwd;
-        }
+        if (!userData.passwd) delete userData.passwd;
     }
-    
     try {
-        const response = await submitUser(userData, mode);
-        
-        if (response.ok) {
+        const res = await submitUser(userData, mode);
+        if (res.ok) {
             closeModal();
-            // Refresh the users list
             await fetchUsers();
         } else {
-            const error = await response.json();
-            alert(`Error: ${error.message || 'Something went wrong'}`);
+            const err = await res.json();
+            alert(err.message || 'Something went wrong');
         }
     } catch (err) {
-        console.error('Error submitting user:', err);
+        console.error(err);
         alert('Failed to save user');
     }
 });
 
-// Cancel button event
 cancelBtn.addEventListener('click', closeModal);
-
-// Close modal when clicking outside
-modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-        closeModal();
-    }
-});
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
 loadRoles();

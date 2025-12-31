@@ -138,16 +138,22 @@ export default class ZabbixService {
     });
   }
 
-  static async getUserGroups({ authToken }) {
-    if (!authToken) throw new Error(`No token found in ${this.getUserGroups} function `)
-    return await this.rpcCall({
-      method: "usergroup.get",
-      params: {
-        output: ["usrgrpid", "name"]
-      },
-      authToken
-    });
+ // ✅ ALWAYS WORKING METHOD
+static async getUsersWithGroups({ authToken }) {
+  if (!authToken) {
+    throw new Error("No authToken provided");
   }
+
+  return await this.rpcCall({
+    method: "user.get",
+    params: {
+      output: ["userid", "username", "name", "surname"],
+      selectUsrgrps: ["usrgrpid", "name"]
+    },
+    authToken
+  });
+}
+
 
   static async createUser({
     username,
@@ -267,15 +273,30 @@ export default class ZabbixService {
     });
   }
 
-  async deleteUser({ authToken, userid }) {
+  // async deleteUser({ authToken, userid }) {
+  //   try {
+  //     const response = await this.makeRequest('user.delete', authToken, [userid]);
+
+  //     if (response.error) {
+  //       throw new Error(response.error.data || 'Failed to delete user');
+  //     }
+
+  //     return response.result;
+  //   } catch (err) {
+  //     console.error(`Zabbix API deleteUser error: ${err.message}`);
+  //     throw err;
+  //   }
+  // }
+
+  static async deleteUser({ authToken, userid }) {
     try {
-      const response = await this.makeRequest('user.delete', authToken, [userid]);
+      const response = await this.rpcCall({
+        method: "user.delete",
+        params: [userid], // Zabbix API expects an array of IDs
+        authToken
+      });
 
-      if (response.error) {
-        throw new Error(response.error.data || 'Failed to delete user');
-      }
-
-      return response.result;
+      return response;
     } catch (err) {
       console.error(`Zabbix API deleteUser error: ${err.message}`);
       throw err;
