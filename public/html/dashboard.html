@@ -47,15 +47,13 @@
     <!-- Dashboard Creation Form Section -->
     <div id="dashboards" class="tab-content">
       <h2>Dashboards</h2>
+      <button id="createDashboardMainBtn" class="btn btn-primary">+ Create Dashboard</button>
 
-      <button id="createDashboardBtn" class="btn btn-primary">
-        + Create Dashboard
-      </button>
-
-      <div id="dashboardsList" class="mt-4">
-        <p>No dashboards created yet.</p>
+      <div id="dashboardsContainer" class="dashboard-container">
+        <div class="loading">Click the button above to load dashboards</div>
       </div>
     </div>
+
 
 
     <div id="settings" class="tab-content">
@@ -92,23 +90,7 @@
     </div>
   </div>
 
-  <div id="groups" class="tab-content">
-    <h2>User Groups</h2>
-    <button id="addGroupBtn">+ Add Group</button>
 
-    <table id="groupsTable">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Users</th>
-          <th>Hosts</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
 
   <!-- Create/Edit Group Modal -->
   <div id="groupModal" class="modal hidden">
@@ -182,61 +164,167 @@
     </div>
   </div>
 
+  <!-- changes after meeting -->
 
-     <!-- Dashboard Creation Modal -->
-    <div id="dashboardModal" class="modal hidden">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 id="dashboardModalTitle">Create New Dashboard</h3>
-          <button type="button" class="close-btn" id="closeDashboardModal">&times;</button>
+  <!-- Dashboard Creation Modal -->
+  <div id="dashboardModal" class="modal hidden">
+    <div class="modal-content" style="max-width: 900px;">
+      <div class="modal-header">
+        <h3 id="modalTitle">Create New Dashboard</h3>
+        <button type="button" class="close-btn" id="closeDashboardModal">&times;</button>
+      </div>
+
+      <form id="dashboardForm" class="modal-form">
+        <input type="hidden" id="editDashboardId" value="">
+
+        <!-- 1. Dashboard Name -->
+        <div class="form-group">
+          <label for="dashboardNameInput" class="form-label">
+            <span class="label-number">1</span> Dashboard Name *
+          </label>
+          <input type="text" id="dashboardNameInput" required placeholder="e.g., Client Traffic Dashboard - Delhi"
+            class="form-input" />
+          <div class="form-hint">Enter a descriptive name for your dashboard</div>
         </div>
 
-        <form id="dashboardForm" class="modal-form">
-          <div class="form-group">
-            <label for="clientUserSelect">Select Client User *</label>
-            <div class="dropdown-container">
-              <div class="dropdown-header" id="clientUserDropdownHeader">
-                <span class="dropdown-placeholder">Select client user</span>
-                <span class="dropdown-arrow">▼</span>
+        <!-- 2. Client User -->
+        <div class="form-group">
+          <label for="userSelect" class="form-label">
+            <span class="label-number">2</span> Client User *
+          </label>
+          <select id="userSelect" required class="form-select">
+            <option value="">Select Client User</option>
+          </select>
+          <div class="form-hint">User who will own this dashboard</div>
+        </div>
+
+        <!-- 3. Host Group -->
+        <div class="form-group">
+          <label class="form-label">
+            <span class="label-number">3</span> Host Group *
+          </label>
+          <div class="dropdown-container">
+            <div class="dropdown-header" id="hostGroupsDropdownHeader">
+              <span class="dropdown-placeholder">Click to select host group</span>
+              <span class="dropdown-arrow">▼</span>
+            </div>
+            <div class="dropdown-list hidden" id="hostGroupsDropdownList">
+              <div class="dropdown-search">
+                <input type="text" placeholder="Type to search host groups..." id="searchHostGroups" autocomplete="off">
+                <span class="search-icon">🔍</span>
               </div>
-              <div class="dropdown-list hidden" id="clientUserDropdownList">
-                <input type="text" placeholder="Search users..." id="searchClientUsers" />
-                <div class="dropdown-options" id="clientUserOptions"></div>
+              <div class="dropdown-options" id="hostGroupsOptions">
+                <div class="loading-options">Loading host groups...</div>
               </div>
-              <div class="selected-tags" id="selectedClientUser"></div>
+            </div>
+          </div>
+          <div class="selected-group-info" id="selectedGroupInfo" style="display: none;">
+            <div class="selected-tag">
+              <span id="selectedGroupName"></span>
+              <button type="button" class="tag-remove" id="clearHostGroupBtn">×</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Host Selection -->
+        <!-- Dashboard modal ke andar (line 281 ke aas paas) -->
+        <div class="dropdown-header" id="dashboardHostsDropdownHeader"> <!-- CHANGE -->
+          <span class="dropdown-placeholder">Click to select hosts</span>
+          <span class="dropdown-arrow">▼</span>
+        </div>
+        <div class="dropdown-list hidden" id="dashboardHostsDropdownList"> <!-- CHANGE -->
+          <div class="dropdown-search">
+            <input type="text" placeholder="Type to search hosts..." id="dashboardSearchHosts" autocomplete="off">
+            <!-- CHANGE -->
+            <span class="search-icon">🔍</span>
+          </div>
+          <div class="dropdown-options" id="dashboardHostsOptions"> <!-- CHANGE -->
+            <div class="loading-options">Select host group first</div>
+          </div>
+        </div>
+
+        <!-- 5. Item Selection -->
+        <div class="form-group" id="itemSelectionGroup" style="display: none;">
+          <label class="form-label">
+            <span class="label-number">5</span> Select Items for Dashboard *
+          </label>
+
+          <div class="tabs-container">
+            <div class="tabs-header" id="hostTabs">
+              <!-- Host tabs will be dynamically added here -->
+            </div>
+            <div class="tabs-content" id="hostTabsContent">
+              <!-- Items for each host will be loaded here -->
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="dashboardNameInput">Dashboard Name *</label>
-            <input type="text" id="dashboardNameInput" required placeholder="e.g., Client Traffic Dashboard" />
+          <div class="selected-items-summary" id="selectedItemsSummary" style="display: none;">
+            <h4>📋 Selected Items Summary</h4>
+            <div id="selectedItemsList"></div>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label for="hostGroupsSelect">Select Host Groups *</label>
-            <div class="dropdown-container">
-              <div class="dropdown-header" id="hostGroupsDropdownHeader">
-                <span class="dropdown-placeholder">Select host groups</span>
-                <span class="dropdown-arrow">▼</span>
-              </div>
-              <div class="dropdown-list hidden" id="hostGroupsDropdownList">
-                <input type="text" placeholder="Search host groups..." id="searchHostGroups" />
-                <div class="dropdown-options" id="hostGroupsOptions"></div>
-              </div>
-              <div class="selected-tags" id="selectedHostGroups"></div>
-            </div>
-          </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn">
+            Create Dashboard
+          </button>
+          <button type="button" class="btn btn-secondary" id="cancelDashboardBtn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Create Dashboard</button>
-            <button type="button" class="btn btn-secondary" id="cancelDashboardBtn">Cancel</button>
-          </div>
-        </form>
+  <!-- View Dashboard Modal -->
+  <div id="viewDashboardModal" class="modal hidden">
+    <div class="modal-content" style="max-width: 700px;">
+      <div class="modal-header">
+        <h3>📊 Dashboard Details</h3>
+        <button type="button" class="close-btn" id="closeViewModal">&times;</button>
+      </div>
+      <div class="modal-body" id="viewDashboardContent">
+        <!-- Dashboard details will be loaded here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="closeViewBtn">Close</button>
       </div>
     </div>
+  </div>
+
+  <!-- Dashboard Edit Modal -->
+  <div id="editDashboardModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Dashboard</h3>
+        <button type="button" class="close-btn" id="closeEditDashboardModal">&times;</button>
+      </div>
+
+      <form id="editDashboardForm" class="modal-form">
+        <input type="hidden" id="editDashboardId">
+
+        <div class="form-group">
+          <label for="editDashboardName">Dashboard Name</label>
+          <input type="text" id="editDashboardName" required />
+        </div>
+
+        <div class="form-group">
+          <label for="editUserSelect">Client User</label>
+          <select id="editUserSelect" required>
+            <option value="">Select User</option>
+          </select>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Update Dashboard</button>
+          <button type="button" class="btn btn-secondary" id="cancelEditDashboardBtn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 
   <script type="module" src="../js/dashboard.js"></script>
   <script type="module" src="../js/groups.js"></script>
+  <script type="module" src="../js/dashboard-managers.js"></script>
 </body>
 
 </html>

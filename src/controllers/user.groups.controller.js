@@ -23,7 +23,7 @@ export default class UserGroupController {
                 ZabbixService.getUsersWithGroups({ authToken })
             ]);
 
-            console.log("📊 Total groups fetched:", groups.length);
+            // console.log("📊 Total groups fetched:", groups.length);
 
             const data = groups.map(group => {
                 // Get users in this group from the detailed group response
@@ -86,13 +86,13 @@ export default class UserGroupController {
         try {
             const { name, userIds, hostGroupIds } = req.body;
 
-            console.log("📦 ====== CREATE GROUP REQUEST ======");
-            console.log("Group Name:", name);
-            console.log("User IDs:", userIds);
-            console.log("Host Group IDs:", hostGroupIds);
-            console.log("Type of hostGroupIds:", typeof hostGroupIds);
-            console.log("Is array:", Array.isArray(hostGroupIds));
-            console.log("Length:", hostGroupIds?.length);
+            // console.log("📦 ====== CREATE GROUP REQUEST ======");
+            // console.log("Group Name:", name);
+            // console.log("User IDs:", userIds);
+            // console.log("Host Group IDs:", hostGroupIds);
+            // console.log("Type of hostGroupIds:", typeof hostGroupIds);
+            // console.log("Is array:", Array.isArray(hostGroupIds));
+            // console.log("Length:", hostGroupIds?.length);
 
             if (!name || !Array.isArray(hostGroupIds)) {
                 return res.status(400).json({

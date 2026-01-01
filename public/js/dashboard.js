@@ -17,7 +17,6 @@ const handleAuthError = (status) => {
 const tabs = document.querySelectorAll(".nav-item");
 const contents = document.querySelectorAll(".tab-content");
 
-
 /* ---------- Fetch Users ---------- */
 export const fetchUsers = async () => {
     usersTableBody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
@@ -78,8 +77,7 @@ export const fetchUsers = async () => {
             const editBtn = document.createElement("button");
             editBtn.textContent = "Edit";
             editBtn.addEventListener("click", () => {
-                alert(`You clicked edit for user: ${user.username}`); //  alert added
-                openEditUserModal(user); // modal  opens
+                openEditUserModal(user);
             });
 
             // Delete button
@@ -87,7 +85,6 @@ export const fetchUsers = async () => {
             deleteBtn.textContent = "Delete";
             deleteBtn.style.color = "red";
             deleteBtn.style.marginLeft = "8px";
-            // delete user event listener
             deleteBtn.addEventListener("click", async () => {
                 if (!confirm(`Are you sure you want to delete "${user.username}"?`)) return;
 
@@ -121,8 +118,7 @@ export const fetchUsers = async () => {
 /* ---------- Add User Button ---------- */
 document.getElementById("addUserBtn").addEventListener("click", openCreateUserModal);
 
-
-// /* ---------- Tab Navigation ---------- */
+/* ---------- Tab Navigation ---------- */
 tabs.forEach(tab => {
     tab.addEventListener("click", () => {
         tabs.forEach(t => t.classList.remove("active"));
@@ -132,11 +128,31 @@ tabs.forEach(tab => {
         document.getElementById(tab.dataset.tab).classList.add("active");
 
         if (tab.dataset.tab === "users") fetchUsers();
-       if (tab.dataset.tab === "groups") {
+        if (tab.dataset.tab === "groups") {
             fetchGroups();
+        }
+        if (tab.dataset.tab === "dashboards") {
+            // Dashboard tab clicked - bas yeh line rakho
+            initializeDashboardTab();
         }
     });
 });
+
+/* ---------- Dashboard Tab Handler ---------- */
+function initializeDashboardTab() {
+    console.log("📊 Dashboard tab clicked");
+    
+    // Check if dashboards manager exists
+    if (window.dashboardsManager) {
+        window.dashboardsManager.loadDashboards();
+    } else {
+        console.log("Dashboards manager not available yet");
+    }
+}
+
 /* ---------- Initial Load ---------- */
-loadRoles();
-fetchUsers();
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Dashboard page loaded');
+    loadRoles();
+    fetchUsers();
+});

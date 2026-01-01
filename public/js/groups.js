@@ -17,7 +17,8 @@ const selectedUsersContainer = document.getElementById("selectedUsers");
 
 const hostsDropdownHeader = document.getElementById("hostsDropdownHeader");
 const hostsDropdownList = document.getElementById("hostsDropdownList");
-const hostsOptions = document.getElementById("hostsOptions");
+// YEH CHANGE KARNA HAI - dashboard modal ka element groups page mein nahi hai
+// const hostsOptions = document.getElementById("hostsOptions");
 const searchHostsInput = document.getElementById("searchHosts");
 const selectedHostsContainer = document.getElementById("selectedHosts");
 
@@ -39,6 +40,7 @@ const initializeModals = () => {
   if (cancelGroupBtn) {
     cancelGroupBtn.addEventListener("click", () => {
       groupModal.classList.add("hidden");
+      resetGroupForm();
     });
   }
 
@@ -61,6 +63,7 @@ const initializeModals = () => {
   if (closeGroupModalBtn) {
     closeGroupModalBtn.addEventListener("click", () => {
       groupModal.classList.add("hidden");
+      resetGroupForm();
     });
   }
 
@@ -68,6 +71,7 @@ const initializeModals = () => {
   window.addEventListener('click', (e) => {
     if (e.target === groupModal) {
       groupModal.classList.add("hidden");
+      resetGroupForm();
     }
     if (e.target === viewUsersModal) {
       viewUsersModal.classList.add("hidden");
@@ -78,6 +82,7 @@ const initializeModals = () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       groupModal.classList.add("hidden");
+      resetGroupForm();
       viewUsersModal.classList.add("hidden");
     }
   });
@@ -114,7 +119,10 @@ const initializeDropdowns = () => {
   if (searchHostsInput) {
     searchHostsInput.addEventListener('input', (e) => {
       const searchTerm = e.target.value.toLowerCase();
-      filterOptions(hostsOptions, searchTerm);
+      const hostsOptions = document.getElementById('hostsOptions');
+      if (hostsOptions) {
+        filterOptions(hostsOptions, searchTerm);
+      }
     });
   }
 
@@ -219,6 +227,42 @@ const removeSelectedTag = (id, container) => {
   if (!container) return;
   const tag = container.querySelector(`[data-id="${id}"]`);
   if (tag) tag.remove();
+};
+
+/* ---------- RESET GROUP FORM ---------- */
+const resetGroupForm = () => {
+  // Reset form inputs
+  if (groupForm) groupForm.reset();
+  if (groupIdInput) groupIdInput.value = "";
+  if (groupNameInput) {
+    groupNameInput.value = "";
+    groupNameInput.disabled = false;
+  }
+
+  // Reset selections
+  selectedUserIds.clear();
+  selectedHostIds.clear();
+
+  // Clear selected tags
+  if (selectedUsersContainer) selectedUsersContainer.innerHTML = '';
+  if (selectedHostsContainer) selectedHostsContainer.innerHTML = '';
+
+  // Clear dropdown options
+  if (usersOptions) usersOptions.innerHTML = '';
+  
+  const hostsOptions = document.getElementById('hostsOptions');
+  if (hostsOptions) hostsOptions.innerHTML = '';
+
+  // Reset dropdown placeholders
+  const usersPlaceholder = document.querySelector('#usersDropdownHeader .dropdown-placeholder');
+  const hostsPlaceholder = document.querySelector('#hostsDropdownHeader .dropdown-placeholder');
+  
+  if (usersPlaceholder) usersPlaceholder.textContent = 'Select users';
+  if (hostsPlaceholder) hostsPlaceholder.textContent = 'Select hosts';
+
+  // Close dropdowns
+  if (usersDropdownList) usersDropdownList.classList.add('hidden');
+  if (hostsDropdownList) hostsDropdownList.classList.add('hidden');
 };
 
 /* ---------- FETCH GROUPS ---------- */
@@ -333,50 +377,61 @@ const populateGroupForm = async (selectedUsers = [], selectedHosts = []) => {
 
   if (selectedUsersContainer) selectedUsersContainer.innerHTML = '';
   if (selectedHostsContainer) selectedHostsContainer.innerHTML = '';
+  
   if (usersOptions) usersOptions.innerHTML = '';
+  
+  // YEH CHANGE KARNA HAI - dynamically get element
+  const hostsOptions = document.getElementById('hostsOptions');
   if (hostsOptions) hostsOptions.innerHTML = '';
 
   try {
     // Fetch users
-    const usersRes = await fetch("http://localhost:8009/api/zabbix/v1/users", { credentials: "include" });
-    const allUsers = (await usersRes.json()).data || [];
+    const usersRes = await fetch("http://localhost:8009/api/zabbix/v1/users", { 
+      credentials: "include" 
+    });
+    const usersResult = await usersRes.json();
+    const allUsers = usersResult.data || [];
 
     console.log('Total users fetched:', allUsers.length);
 
     // Populate users dropdown
-    allUsers.forEach(user => {
-      if (!usersOptions) return;
+    if (usersOptions) {
+      allUsers.forEach(user => {
+        const isSelected = selectedUserIds.has(user.userid);
+        console.log(`User ${user.userid} - ${user.username}: selected=${isSelected}`);
+        const option = createOptionElement(user.userid, user.username, 'user', isSelected);
+        usersOptions.appendChild(option);
 
-      const isSelected = selectedUserIds.has(user.userid);
-      console.log(`User ${user.userid} - ${user.username}: selected=${isSelected}`);
-      const option = createOptionElement(user.userid, user.username, 'user', isSelected);
-      usersOptions.appendChild(option);
+        if (isSelected && selectedUsersContainer) {
+          addSelectedTag(user.userid, user.username, selectedUsersContainer, 'user');
+        }
+      });
+    }
 
-      if (isSelected && selectedUsersContainer) {
-        addSelectedTag(user.userid, user.username, selectedUsersContainer, 'user');
-      }
+    // Fetch host groups
+    const hostRes = await fetch("http://localhost:8009/api/zabbix/v1/hosts/groups", { 
+      credentials: "include" 
     });
+    const hostResult = await hostRes.json();
+    const allHosts = hostResult.data || [];
 
-    // Fetch hosts
-    const hostRes = await fetch("http://localhost:8009/api/zabbix/v1/hosts/groups", { credentials: "include" });
-    const allHosts = (await hostRes.json()).data || [];
-
-    console.log('Total hosts fetched:', allHosts.length);
-    console.log('Selected hosts for edit:', selectedHosts);
+    console.log('Total host groups fetched:', allHosts.length);
+    console.log('Selected host groups for edit:', selectedHosts);
 
     // Populate hosts dropdown
-    allHosts.forEach(host => {
-      if (!hostsOptions) return;
+    const hostsOptions = document.getElementById('hostsOptions');
+    if (hostsOptions) {
+      allHosts.forEach(host => {
+        const isSelected = selectedHostIds.has(host.groupid);
+        console.log(`Host ${host.groupid} - ${host.name}: selected=${isSelected}`);
+        const option = createOptionElement(host.groupid, host.name, 'host', isSelected);
+        hostsOptions.appendChild(option);
 
-      const isSelected = selectedHostIds.has(host.groupid);
-      console.log(`Host ${host.groupid} - ${host.name}: selected=${isSelected}`);
-      const option = createOptionElement(host.groupid, host.name, 'host', isSelected);
-      hostsOptions.appendChild(option);
-
-      if (isSelected && selectedHostsContainer) {
-        addSelectedTag(host.groupid, host.name, selectedHostsContainer, 'host');
-      }
-    });
+        if (isSelected && selectedHostsContainer) {
+          addSelectedTag(host.groupid, host.name, selectedHostsContainer, 'host');
+        }
+      });
+    }
 
     console.log('Final selectedUserIds:', Array.from(selectedUserIds));
     console.log('Final selectedHostIds:', Array.from(selectedHostIds));
@@ -393,12 +448,9 @@ if (createGroupBtn) {
     console.log('Opening create group modal');
     isEditMode = false;
     if (modalTitle) modalTitle.textContent = 'Create New Group';
-    if (groupForm) groupForm.reset();
-    if (groupIdInput) groupIdInput.value = "";
-    if (groupNameInput) {
-      groupNameInput.value = "";
-      groupNameInput.disabled = false;
-    }
+    
+    // Reset form
+    resetGroupForm();
 
     if (groupModal) {
       groupModal.classList.remove("hidden");
@@ -487,6 +539,7 @@ if (groupForm) {
       }
 
       if (groupModal) groupModal.classList.add("hidden");
+      resetGroupForm();
       fetchGroups();
 
     } catch (err) {
@@ -515,7 +568,7 @@ const openEditGroup = async (group) => {
 
   if (groupNameInput) {
     groupNameInput.value = group.name || '';
-    groupNameInput.disabled = false;
+    groupNameInput.disabled = true; // Edit mode mein group name change nahi kar sakte
     console.log('Set groupNameInput to:', group.name);
   }
 
@@ -790,6 +843,10 @@ const openViewGroupModal = async (group) => {
   }
 };
 
+/* ---------- REMOVE OLD CODE ---------- */
+// Yeh section remove karna hai kyunki yeh dashboard creation ke liye tha
+// aur groups page mein conflict kar raha hai
+
 /* ---------- INITIALIZE EVERYTHING ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Initializing groups page...');
@@ -805,5 +862,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log('Groups page initialized');
 });
-
-
