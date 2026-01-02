@@ -28,17 +28,17 @@ export default class DashboardController {
   static updateClientTrafficDashboard = async (req, res, next) => {
     try {
       const { dashboardId } = req.params;
-      const { clientUserId, hostGroupId, dashboardName } = req.body;
+      const { itemIds, dashboardName, hostIds } = req.body;
 
-      const result = await ZabbixDashboardService.updateClientTrafficDashboard({
+      const result = await DashboardService.updateClientDashboard({
         dashboardId,
-        clientUserId,
-        hostGroupId,
         dashboardName,
+        hostIds,
+        itemIds,
         authToken: req.zabbix.authToken
       });
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
         data: result
       });
@@ -68,7 +68,7 @@ export default class DashboardController {
 
   static getAllDashboards = async (req, res, next) => {
     try {
-      const { clientUserId, includeWidgets,search } = req.query;
+      const { clientUserId, includeWidgets, search } = req.query;
 
       const result = await ZabbixDashboardService.getAllDashboards({
         authToken: req.zabbix.authToken,

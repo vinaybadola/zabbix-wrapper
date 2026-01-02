@@ -73,17 +73,39 @@ export default class HostService {
         });
     }
 
-    static async fetchHostItems({ hostIds, authToken }) {
-        if (!authToken) {
-            throw new Error("No authToken provided for fetchHostItems");
+    static async fetchHostItems({
+        hostIds,
+        authToken,
+        searchText,
+        searchBy = "name",
+        exact = false
+    }) {
+        if (!authToken) throw new Error("No authToken");
+
+        const params = {
+            hostids: hostIds,
+            output: ["itemid", "name", "key_"]
+        };
+
+        const cleanText = searchText
+            ?.replace(/\n/g, "")
+            ?.replace(/\s+/g, " ")
+            ?.trim();
+
+        if (cleanText) {
+            if (exact) {
+                params.filter = { [searchBy]: cleanText };
+            } else {
+                params.search = { [searchBy]: cleanText };
+                params.searchWildcardsEnabled = true;
+            }
         }
-        return await ZabbixService.rpcCall({
+
+        console.log("FINAL PARAMS:", JSON.stringify(params, null, 2));
+
+        return ZabbixService.rpcCall({
             method: "item.get",
-            params: {
-                hostids: hostIds,
-                search: { name: "Bits" },
-                output: ["itemid", "name", "key_"]
-            },
+            params,
             authToken
         });
     }
