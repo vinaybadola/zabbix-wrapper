@@ -124,10 +124,13 @@ export default class HostController {
   static fetchHostItems = async (req, res, next) => {
     try {
       const { hostIds } = req.body;
+      const {search} = req.query;
 
       const data = await HostService.fetchHostItems({
         hostIds,
-        authToken: req.zabbix.authToken
+        authToken: req.zabbix.authToken,
+        searchText: search || null,
+        searchBy: "name"
       })
 
       return res.status(200).json({ success: true, message: "ok", data });
