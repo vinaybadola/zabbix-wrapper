@@ -2,72 +2,104 @@ import ZabbixService from "./zabbix.service.js";
 
 export default class ZabbixDashboardService {
 
-    /**
-     * Create traffic dashboard for a client
-     */
     static async createClientTrafficDashboard({
         clientUserId,
         hostGroupId,
         dashboardName,
+        bitsInItemId,
+        bitsOutItemId,
         authToken
     }) {
         if (!clientUserId || !hostGroupId) {
             throw new Error("clientUserId and hostGroupId are required");
         }
 
-        const hosts = await ZabbixService.rpcCall({
+        let bitsIn, bitsOut;
+        let finalHostId;
+
+        if (bitsInItemId && bitsOutItemId) {
+            // Use provided item IDs
+            const items = await ZabbixService.rpcCall({
+                method: "item.get",
+                params: {
+                    itemids: [bitsInItemId, bitsOutItemId],
+                    output: ["itemid", "name", "key_", "hostid"]
+                },
+                authToken
+            });
+
+            bitsIn = items.find(i => i.itemid === bitsInItemId);
+            bitsOut = items.find(i => i.itemid === bitsOutItemId);
+
+            if (!bitsIn || !bitsOut) {
+                throw new Error("One or both item IDs not found");
+            }
+
+            finalHostId = bitsIn.hostid;
+        } else {
+            // Original logic
+            const hosts = await ZabbixService.rpcCall({
+                method: "host.get",
+                params: {
+                    groupids: hostGroupId,
+                    output: ["hostid", "name"]
+                },
+                authToken
+            });
+
+            if (!hosts.length) {
+                throw new Error("No hosts found in host group");
+            }
+
+            finalHostId = hosts[0].hostid;
+            const hostName = hosts[0].name;
+
+            const items = await ZabbixService.rpcCall({
+                method: "item.get",
+                params: {
+                    hostids: finalHostId,
+                    search: { name: "Bits" },
+                    output: ["itemid", "name", "key_"]
+                },
+                authToken
+            });
+
+            bitsIn = items.find(i => {
+                const name = i.name.toLowerCase();
+                return name.includes("bits received") &&
+                    name.includes("100ge0/0/1") &&
+                    name.includes("backbone");
+            });
+
+            bitsOut = items.find(i => {
+                const name = i.name.toLowerCase();
+                return name.includes("bits sent") &&
+                    name.includes("100ge0/0/1") &&
+                    name.includes("backbone");
+            });
+
+            if (!bitsIn || !bitsOut) {
+                throw new Error("Traffic items (Bits in/out) not found");
+            }
+        }
+
+        // Get host name for dashboard
+        const hostInfo = await ZabbixService.rpcCall({
             method: "host.get",
             params: {
-                groupids: hostGroupId,
-                output: ["hostid", "name"]
+                hostids: finalHostId,
+                output: ["name"]
             },
             authToken
         });
 
-        if (!hosts.length) {
-            throw new Error("No hosts found in host group");
-        }
+        const hostName = hostInfo[0]?.name || finalHostId;
 
-        const hostId = "10889";
-
-        const items = await ZabbixService.rpcCall({
-            method: "item.get",
-            params: {
-                hostids: hostId,
-                search: { name: "Bits" },
-                output: ["itemid", "name", "key_"]
-            },
-            authToken
-        });
-
-        const bitsIn = items.find(i => {
-            const name = i.name.toLowerCase();
-            return name.includes("bits received") &&
-                name.includes("100ge0/0/1") &&
-                name.includes("backbone");
-        });
-
-        const bitsOut = items.find(i => {
-            const name = i.name.toLowerCase();
-            return name.includes("bits sent") &&
-                name.includes("100ge0/0/1") &&
-                name.includes("backbone");
-        });
-
-        if (!bitsIn || !bitsOut) {
-            throw new Error("Traffic items (Bits in/out) not found");
-        }
-
-        console.log('Creating dashboard with items:', {
-            hostId,
-            bitsIn: { id: bitsIn.itemid, name: bitsIn.name },
-            bitsOut: { id: bitsOut.itemid, name: bitsOut.name }
-        });
-
+        // Rest of the dashboard creation code...
         const result = await ZabbixService.rpcCall({
             method: "dashboard.create",
             params: {
-                name: dashboardName || `Traffic Dashboard - 10.156.252.3`,
+                name: dashboardName || `Traffic Dashboard - ${hostName}`,
                 userid: parseInt(clientUserId),
                 private: 0,
                 pages: [
@@ -82,37 +114,31 @@ export default class ZabbixDashboardService {
                                 width: 24,
                                 height: 8,
                                 fields: [
-                                    // ✅ ONE dataset (ds.0) with ONE host
                                     {
                                         type: 1,
                                         name: "ds.0.hosts.0",
-                                        value: "10.156.252.3"
+                                        value: hostName
                                     },
-                                    // ✅ First item - Bits In
                                     {
                                         type: 1,
                                         name: "ds.0.items.0",
                                         value: bitsIn.name
                                     },
-                                    // ✅ Second item - Bits Out
                                     {
                                         type: 1,
                                         name: "ds.0.items.1",
                                         value: bitsOut.name
                                     },
-                                    // ✅ Color for the dataset
                                     {
                                         type: 1,
                                         name: "ds.0.color",
                                         value: "1A7C11"
                                     },
-                                    // ✅ Y-axis position
                                     {
                                         type: 0,
                                         name: "righty",
                                         value: 0
                                     },
-                                    // Optional: Legend settings
                                     {
                                         type: 0,
                                         name: "legend",
@@ -133,11 +159,20 @@ export default class ZabbixDashboardService {
         });
 
         return {
+            success: true,
             dashboardId: result.dashboardids[0],
-            host: "10.156.252.3",
+            host: hostName,
             items: {
-                bitsReceived: bitsIn.name,
-                bitsSent: bitsOut.name
+                bitsReceived: {
+                    itemid: bitsIn.itemid,
+                    name: bitsIn.name,
+                    key: bitsIn.key_
+                },
+                bitsSent: {
+                    itemid: bitsOut.itemid,
+                    name: bitsOut.name,
+                    key: bitsOut.key_
+                }
             }
         };
     }
@@ -153,15 +188,12 @@ export default class ZabbixDashboardService {
             throw new Error("dashboardId is required");
         }
 
-        // First, get the existing dashboard to preserve other settings
+        // Get existing dashboard WITHOUT complex parameters
         const existingDashboard = await ZabbixService.rpcCall({
             method: "dashboard.get",
             params: {
                 dashboardids: dashboardId,
-                output: "extend",
-                selectPages: "extend",
-                selectWidgets: "extend",
-                selectWidgetFields: "extend"
+                output: "extend"
             },
             authToken
         });
@@ -170,7 +202,6 @@ export default class ZabbixDashboardService {
             throw new Error("Dashboard not found");
         }
 
-        // If new host group provided, fetch new items
         let bitsIn, bitsOut, hostName;
 
         if (hostGroupId) {
@@ -219,76 +250,16 @@ export default class ZabbixDashboardService {
             }
         }
 
-        // Build the update params
         const updateParams = {
             dashboardid: dashboardId
         };
 
-        // Update name if provided
         if (dashboardName) {
             updateParams.name = dashboardName;
         }
 
-        // Update userid if provided
         if (clientUserId) {
             updateParams.userid = parseInt(clientUserId);
-        }
-
-        // Update pages if new items found
-        if (bitsIn && bitsOut) {
-            updateParams.pages = [
-                {
-                    dashboard_pageid: existingDashboard[0].pages[0].dashboard_pageid,
-                    name: "Traffic Overview",
-                    widgets: [
-                        {
-                            type: "svggraph",
-                            name: "Traffic (Bits In/Out)",
-                            x: 0,
-                            y: 0,
-                            width: 24,
-                            height: 8,
-                            fields: [
-                                {
-                                    type: 1,
-                                    name: "ds.0.hosts.0",
-                                    value: hostName
-                                },
-                                {
-                                    type: 1,
-                                    name: "ds.0.items.0",
-                                    value: bitsIn.name
-                                },
-                                {
-                                    type: 1,
-                                    name: "ds.0.items.1",
-                                    value: bitsOut.name
-                                },
-                                {
-                                    type: 1,
-                                    name: "ds.0.color",
-                                    value: "1A7C11"
-                                },
-                                {
-                                    type: 0,
-                                    name: "righty",
-                                    value: 0
-                                },
-                                {
-                                    type: 0,
-                                    name: "legend",
-                                    value: 1
-                                },
-                                {
-                                    type: 0,
-                                    name: "legend_statistic",
-                                    value: 1
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ];
         }
 
         const result = await ZabbixService.rpcCall({
@@ -298,6 +269,7 @@ export default class ZabbixDashboardService {
         });
 
         return {
+            success: true,
             dashboardId: result.dashboardids[0],
             updated: true,
             ...(bitsIn && bitsOut && {
@@ -315,19 +287,12 @@ export default class ZabbixDashboardService {
             const dashboards = await ZabbixService.rpcCall({
                 method: "dashboard.get",
                 params: {
-                    output: "extend",
-                    selectPages: "extend"
+                    output: "extend"
                 },
                 authToken
             });
 
-            console.log('Total dashboards:', dashboards.length);
-
-            // If using Zabbix 6.0+, try the original parameter
-            if (dashboards.length > 0 && dashboards[0].pages) {
-                console.log('Dashboard pages structure:', JSON.stringify(dashboards[6].pages[0], null, 2));
-            }
-
+            console.log('Total dashboards:', dashboards);
             return dashboards;
         } catch (error) {
             console.error('Error debugging dashboard structure:', error);
@@ -338,50 +303,61 @@ export default class ZabbixDashboardService {
     static async getAllDashboards({
         authToken,
         clientUserId = null,
-        includeWidgets = true
+        includeWidgets = true,
+        search = null
     }) {
         const params = {
-            output: "extend"
+            output: ["dashboardid", "name", "userid", "private"]
         };
 
-        // Filter by user if provided
         if (clientUserId) {
             params.userids = clientUserId;
         }
 
-        // Include pages and widgets if needed
-        if (includeWidgets) {
-            params.selectPages = "extend";
-            params.selectWidgets = "extend";
-            params.selectWidgetFields = "extend";
+        // 🔍 Search by dashboard name (server-side)
+        if (search) {
+            params.search = { name: search };
+            params.searchWildcardsEnabled = true;
         }
 
+        // 1️⃣ Fetch dashboards
         const dashboards = await ZabbixService.rpcCall({
             method: "dashboard.get",
             params,
             authToken
         });
 
-        // Format the response
+        if (!dashboards.length) return [];
+
+        // 2️⃣ Collect unique userIds
+        const userIds = [
+            ...new Set(dashboards.map(d => d.userid).filter(Boolean))
+        ];
+
+        // 3️⃣ Fetch usernames in ONE call
+        const users = await ZabbixService.rpcCall({
+            method: "user.get",
+            params: {
+                userids: userIds,
+                output: ["userid", "username", "name", "surname"]
+            },
+            authToken
+        });
+
+        const userIdToName = new Map(
+            users.map(u => [
+                u.userid,
+                u.username || `${u.name || ""} ${u.surname || ""}`.trim()
+            ])
+        );
+
+        // 4️⃣ Final response
         return dashboards.map(dashboard => ({
             dashboardId: dashboard.dashboardid,
             name: dashboard.name,
             userId: dashboard.userid,
-            private: dashboard.private,
-            pages: dashboard.pages?.map(page => ({
-                pageId: page.dashboard_pageid,
-                name: page.name,
-                widgets: page.widgets?.map(widget => ({
-                    widgetId: widget.widgetid,
-                    type: widget.type,
-                    name: widget.name,
-                    x: widget.x,
-                    y: widget.y,
-                    width: widget.width,
-                    height: widget.height,
-                    fields: widget.fields
-                }))
-            }))
+            userName: userIdToName.get(dashboard.userid) || "Unknown",
+            private: Number(dashboard.private)
         }));
     }
 
@@ -393,14 +369,12 @@ export default class ZabbixDashboardService {
             throw new Error("dashboardId is required");
         }
 
+        // SIMPLE CALL WITHOUT COMPLEX PARAMETERS
         const dashboards = await ZabbixService.rpcCall({
             method: "dashboard.get",
             params: {
                 dashboardids: dashboardId,
-                output: "extend",
-                selectPages: "extend",
-                selectWidgets: "extend",
-                selectWidgetFields: "extend"
+                output: "extend"
             },
             authToken
         });
@@ -412,24 +386,11 @@ export default class ZabbixDashboardService {
         const dashboard = dashboards[0];
 
         return {
+            success: true,
             dashboardId: dashboard.dashboardid,
             name: dashboard.name,
             userId: dashboard.userid,
-            private: dashboard.private,
-            pages: dashboard.pages?.map(page => ({
-                pageId: page.dashboard_pageid,
-                name: page.name,
-                widgets: page.widgets?.map(widget => ({
-                    widgetId: widget.widgetid,
-                    type: widget.type,
-                    name: widget.name,
-                    x: widget.x,
-                    y: widget.y,
-                    width: widget.width,
-                    height: widget.height,
-                    fields: widget.fields
-                }))
-            }))
+            private: dashboard.private
         };
     }
 
@@ -441,7 +402,6 @@ export default class ZabbixDashboardService {
             throw new Error("dashboardId is required");
         }
 
-        // Check if dashboard exists first
         const existingDashboard = await ZabbixService.rpcCall({
             method: "dashboard.get",
             params: {
@@ -462,6 +422,7 @@ export default class ZabbixDashboardService {
         });
 
         return {
+            success: true,
             deleted: true,
             dashboardId: result.dashboardids[0],
             message: `Dashboard "${existingDashboard[0].name}" deleted successfully`
@@ -478,11 +439,12 @@ export default class ZabbixDashboardService {
 
         const result = await ZabbixService.rpcCall({
             method: "dashboard.delete",
-            params: dashboardIds, 
+            params: dashboardIds,
             authToken
         });
 
         return {
+            success: true,
             deleted: true,
             dashboardIds: result.dashboardids,
             count: result.dashboardids.length,

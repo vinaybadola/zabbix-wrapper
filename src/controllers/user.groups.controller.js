@@ -1,73 +1,60 @@
-import ZabbixService from "../services/zabbix.service.js";
+import UserGroupService from "../services/user.group.service.js";
 
 export default class UserGroupController {
+
     static userGroups = async (req, res, next) => {
         try {
-            const data = await zabbixService.getUserGroups({ authToken: req.zabbix.authToken });
-
-            return res.status(200).json({
-                success: true,
-                message: "ok",
-                data
+            const data = await UserGroupService.getUserGroupsWithUsers({
+                authToken: req.zabbix.authToken
             });
 
-        } catch (error) {
-            console.error(`Error fetching user groups : ${err}`)
-            next(error);
-        }
-    }
-
-    static hostGroups = async (req, res, next) => {
-        try {
-            const data = await zabbixService.getHostGroups({ authToken: req.zabbix.authToken });
-
-            return res.status(200).json({
+            res.status(200).json({
                 success: true,
                 message: "ok",
-                data
+                data,
+                debug: {
+                    totalGroups: data.length,
+                    groupsWithHosts: data.filter(g => g.hostGroupIds.length > 0).length
+                }
             });
-
-        } catch (error) {
-            console.error(`Error fetching host groups : ${err}`)
-            next(error);
+        } catch (err) {
+            next(err);
         }
-    }
+    };
 
     static createClientUserGroup = async (req, res, next) => {
         try {
-            const { name, userIds, hostGroupIds } = req.body;
+            const { name, userIds = [], hostGroupIds } = req.body;
 
             if (!name || !Array.isArray(hostGroupIds)) {
                 return res.status(400).json({
                     success: false,
-                    message: "name and hostGroupIds[] are required"
+                    message: "name and hostGroupIds[] required"
                 });
             }
 
-            const result = await zabbixService.createUserGroup({
+            const userGroupId = await UserGroupService.createUserGroup({
                 name,
                 userIds,
-                hostGroupIds,
                 authToken: req.zabbix.authToken
             });
 
-            const userGroupId = result.usrgrpids[0];
-
-            await zabbixService.setUserGroupPermissions({
+            const permissions = await UserGroupService.setPermissions({
                 userGroupId,
                 hostGroupIds,
-                permission: 2, // READ ONLY
+                permission: 2,
                 authToken: req.zabbix.authToken
             });
-
 
             res.status(201).json({
                 success: true,
-                data: result
+                data: {
+                    groupId: userGroupId,
+                    permissions
+                }
             });
 
         } catch (err) {
-            console.log(`Error creating client user group : ${err.message}`);
             next(err);
         }
     };
@@ -79,24 +66,44 @@ export default class UserGroupController {
             if (!userGroupId || !Array.isArray(hostGroupIds)) {
                 return res.status(400).json({
                     success: false,
-                    message: "userGroupId and hostGroupIds[] are required"
+                    message: "userGroupId and hostGroupIds[] required"
                 });
             }
 
-            const result = await ZabbixService.setUserGroupPermissions({
+            const result = await UserGroupService.setPermissions({
                 userGroupId,
                 hostGroupIds,
                 permission: 2,
                 authToken: req.zabbix.authToken
             });
 
-            res.status(200).json({
-                success: true,
-                data: result
+            res.status(200).json({ success: true, data: result });
+        } catch (err) {
+            next(err);
+        }
+    };
+
+    static deleteUserGroup = async (req, res, next) => {
+        try {
+            const { groupId } = req.params;
+            if (!groupId) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Group ID is required"
+                });
+            }
+
+            const result = await UserGroupService.deleteUserGroup({
+                groupId,
+                authToken: req.zabbix.authToken
             });
 
+            res.status(200).json({
+                success: true,
+                message: "Group deleted successfully",
+                data: result
+            });
         } catch (err) {
-            console.error("Error updating user group permissions:", err.message);
             next(err);
         }
     };
