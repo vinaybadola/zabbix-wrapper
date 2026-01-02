@@ -1,330 +1,423 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zabbix Dashboard</title>
+    <link rel="stylesheet" href="../css/dashboard.css" />
+    <link rel="stylesheet" href="../css/new.dashboard.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zabbix Dashboard</title>
-  <link rel="stylesheet" href="../css/dashboard.css" />
-</head>
+  <body>
+    <!-- Top Navigation -->
+    <h1 style="display: flex; justify-content: center; align-items: center">
+      Zabbix Monitoring System
+    </h1>
+    <nav class="navbar">
+      <div class="nav-item active" data-tab="users">Users</div>
+      <div class="nav-item" data-tab="groups">User Groups</div>
+      <div class="nav-item" data-tab="dashboards">Dashboards</div>
+      <div class="nav-item" data-tab="settings">Settings</div>
+    </nav>
 
-<body>
-  <!-- Top Navigation -->
-  <nav class="navbar">
-    <div class="nav-item active" data-tab="users">Users</div>
-    <div class="nav-item" data-tab="groups">User Groups</div>
-    <div class="nav-item" data-tab="dashboards">Dashboards</div>
-    <div class="nav-item" data-tab="settings">Settings</div>
-  </nav>
+    <button id="addUserBtn">+ Add User</button>
 
-  <button id="addUserBtn">+ Add User</button>
+    <button class="open-btn" id="openModalBtn">
+      <i class="fas fa-plus-circle"></i> Create New Dashboard
+    </button>
 
-  <!-- Main Content -->
-  <main class="content">
-    <div id="users" class="tab-content active">
-      <h2>Users</h2>
-      <table id="usersTable">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Name</th>
-            <th>SurName</th>
-            <th>Role</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <div id="groups" class="tab-content">
-      <h2>User Groups</h2>
-      <button id="createGroupBtn">+ Create Group</button>
-      <div id="groupsContent">Loading...</div>
-    </div>
-
-    <!-- Dashboard Creation Form Section -->
     <div id="dashboards" class="tab-content">
-      <h2>Dashboards</h2>
-      <button id="createDashboardMainBtn" class="btn btn-primary">+ Create Dashboard</button>
-
-      <div id="dashboardsContainer" class="dashboard-container">
-        <div class="loading">Click the button above to load dashboards</div>
-      </div>
-    </div>
-
-
-
-    <div id="settings" class="tab-content">
-      <h2>Settings</h2>
-      <p>Coming later.</p>
-    </div>
-  </main>
-
-  <div id="userModal" class="modal hidden">
-    <div class="modal-content">
-      <form id="userForm">
-        <input type="hidden" id="userid" />
-
-        <label>Username</label>
-        <input id="username" required />
-
-        <label>Password</label>
-        <input id="passwd" type="password" />
-
-        <label>Name</label>
-        <input id="name" />
-
-        <label>Surname</label>
-        <input id="surname" />
-
-        <label>Role</label>
-        <select id="roleId"></select>
-
-        <div class="actions">
-          <button type="submit" id="submitBtn">Create</button>
-          <button type="button" id="cancelBtn">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-
-
-  <!-- Create/Edit Group Modal -->
-  <div id="groupModal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="modalTitle">Create New Group</h3>
-        <button type="button" class="close-btn" id="closeGroupModal">&times;</button>
-      </div>
-
-      <form id="groupForm" class="modal-form">
-        <input type="hidden" id="groupId" />
-
-        <div class="form-group">
-          <label for="groupName">Group Name *</label>
-          <input type="text" id="groupName" required placeholder="Enter group name" />
-        </div>
-
-        <div class="form-group">
-          <label>Select Users (Multiple)</label>
-          <div class="dropdown-container">
-            <div class="dropdown-header" id="usersDropdownHeader">
-              <span class="dropdown-placeholder">Select users</span>
-              <span class="dropdown-arrow">▼</span>
-            </div>
-            <div class="dropdown-list hidden" id="usersDropdownList">
-              <input type="text" placeholder="Search users..." id="searchUsers" />
-              <div class="dropdown-options" id="usersOptions"></div>
-            </div>
-            <div class="selected-tags" id="selectedUsers"></div>
+      <!-- Add this search bar -->
+      <div class="dashboard-header">
+        <h2>Dashboards</h2>
+        <div class="search-container">
+          <div class="search-hint">Press Esc to clear search</div>
+          <div class="search-input-group">
+            <i class="fas fa-search search-icon"></i>
+            <input
+              type="text"
+              id="dashboardSearch"
+              class="search-input"
+              placeholder="Search dashboards by name..."
+              aria-label="Search dashboards"
+            />
+            <button
+              id="clearSearch"
+              class="clear-search-btn"
+              style="display: none"
+            >
+              <i class="fas fa-times"></i>
+            </button>
           </div>
+          <div class="search-stats" id="searchStats"></div>
         </div>
+      </div>
 
-        <div class="form-group">
-          <label>Select Hosts (Multiple) *</label>
-          <div class="dropdown-container">
-            <div class="dropdown-header" id="hostsDropdownHeader">
-              <span class="dropdown-placeholder">Select hosts</span>
-              <span class="dropdown-arrow">▼</span>
-            </div>
-            <div class="dropdown-list hidden" id="hostsDropdownList">
-              <input type="text" placeholder="Search hosts..." id="searchHosts" />
-              <div class="dropdown-options" id="hostsOptions"></div>
-            </div>
-            <div class="selected-tags" id="selectedHosts"></div>
+      <div id="dashboardsContainer" class="dashboard-container"></div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="custom-client-dashboard">
+        <div class="modal">
+          <div class="modal-header">
+            <div class="modal-title">Create New Dashboard</div>
+            <button class="close-btn" id="closeModalBtn">&times;</button>
           </div>
-        </div>
 
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Save Group</button>
-          <button type="button" class="btn btn-secondary" id="cancelGroupBtn">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- View Users Modal -->
-  <div id="viewUsersModal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="viewUsersTitle">Group Users</h3>
-        <button type="button" class="close-btn" id="closeViewUsersBtn">&times;</button>
-      </div>
-
-      <div class="modal-body">
-        <div id="groupUsersList"></div>
-      </div>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="closeUsersModalBtn">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- changes after meeting -->
-
-  <!-- Dashboard Creation Modal -->
-  <div id="dashboardModal" class="modal hidden">
-    <div class="modal-content" style="max-width: 900px;">
-      <div class="modal-header">
-        <h3 id="modalTitle">Create New Dashboard</h3>
-        <button type="button" class="close-btn" id="closeDashboardModal">&times;</button>
-      </div>
-
-      <form id="dashboardForm" class="modal-form">
-        <input type="hidden" id="editDashboardId" value="">
-
-        <!-- 1. Dashboard Name -->
-        <div class="form-group">
-          <label for="dashboardNameInput" class="form-label">
-            <span class="label-number">1</span> Dashboard Name *
-          </label>
-          <input type="text" id="dashboardNameInput" required placeholder="e.g., Client Traffic Dashboard - Delhi"
-            class="form-input" />
-          <div class="form-hint">Enter a descriptive name for your dashboard</div>
-        </div>
-
-        <!-- 2. Client User -->
-        <div class="form-group">
-          <label for="userSelect" class="form-label">
-            <span class="label-number">2</span> Client User *
-          </label>
-          <select id="userSelect" required class="form-select">
-            <option value="">Select Client User</option>
-          </select>
-          <div class="form-hint">User who will own this dashboard</div>
-        </div>
-
-        <!-- 3. Host Group -->
-        <div class="form-group">
-          <label class="form-label">
-            <span class="label-number">3</span> Host Group *
-          </label>
-          <div class="dropdown-container">
-            <div class="dropdown-header" id="hostGroupsDropdownHeader">
-              <span class="dropdown-placeholder">Click to select host group</span>
-              <span class="dropdown-arrow">▼</span>
-            </div>
-            <div class="dropdown-list hidden" id="hostGroupsDropdownList">
-              <div class="dropdown-search">
-                <input type="text" placeholder="Type to search host groups..." id="searchHostGroups" autocomplete="off">
-                <span class="search-icon">🔍</span>
+          <div class="modal-body">
+            <div class="step-indicator">
+              <div class="step active" id="step1">
+                <div class="step-circle">1</div>
+                <div class="step-label">Dashboard Name</div>
               </div>
-              <div class="dropdown-options" id="hostGroupsOptions">
-                <div class="loading-options">Loading host groups...</div>
+              <div class="step" id="step2">
+                <div class="step-circle">2</div>
+                <div class="step-label">Select User</div>
+              </div>
+              <div class="step" id="step3">
+                <div class="step-circle">3</div>
+                <div class="step-label">Host Groups</div>
+              </div>
+              <div class="step" id="step4">
+                <div class="step-circle">4</div>
+                <div class="step-label">Select Hosts</div>
+              </div>
+              <div class="step" id="step5">
+                <div class="step-circle">5</div>
+                <div class="step-label">Select Items</div>
               </div>
             </div>
+
+            <form id="dashboardForm">
+              <!-- Step 1: Dashboard Name -->
+              <div class="form-group" id="step1Content">
+                <label class="form-label" for="dashboardName"
+                  >Dashboard Name *</label
+                >
+                <input
+                  type="text"
+                  id="dashboardName"
+                  class="form-control"
+                  placeholder="Enter a descriptive name for your dashboard"
+                  required
+                />
+                <div class="status-message" id="nameStatus"></div>
+              </div>
+
+              <!-- Step 2: Select User -->
+              <div class="form-group" id="step2Content" style="display: none">
+                <label class="form-label">Select User *</label>
+                <div class="dropdown-container">
+                  <button
+                    type="button"
+                    class="dropdown-toggle"
+                    id="userDropdownToggle"
+                    disabled
+                  >
+                    <span id="selectedUserText">Select a user</span>
+                    <i class="fas fa-chevron-down"></i>
+                  </button>
+                  <div class="dropdown-menu" id="userDropdownMenu">
+                    <!-- Users will be loaded here -->
+                    <div class="empty-state">Loading users...</div>
+                  </div>
+                </div>
+                <div class="status-message" id="userStatus"></div>
+              </div>
+
+              <!-- Step 3: Host Groups (Auto-selected) -->
+              <div class="form-group" id="step3Content" style="display: none">
+                <label class="form-label">Host Groups *</label>
+                <div class="chips-container" id="hostGroupsChips">
+                  <!-- Host groups will be auto-selected and shown as chips -->
+                  <div class="empty-state">
+                    Select a user to load host groups
+                  </div>
+                </div>
+                <div class="status-message" id="hostGroupsStatus"></div>
+              </div>
+
+              <!-- Step 4: Select Hosts -->
+              <div class="form-group" id="step4Content" style="display: none">
+                <label class="form-label">Select Hosts *</label>
+                <div class="dropdown-container">
+                  <button
+                    type="button"
+                    class="dropdown-toggle"
+                    id="hostsDropdownToggle"
+                    disabled
+                  >
+                    <span id="selectedHostsText"
+                      >Select hosts (multiple allowed)</span
+                    >
+                    <i class="fas fa-chevron-down"></i>
+                  </button>
+                  <div
+                    class="dropdown-menu multi-select-dropdown"
+                    id="hostsDropdownMenu"
+                  >
+                    <!-- Hosts will be loaded here -->
+                    <div class="empty-state">Select host groups first</div>
+                  </div>
+                </div>
+                <div class="chips-container" id="hostsChips">
+                  <!-- Selected hosts will appear here as chips -->
+                </div>
+                <div class="status-message" id="hostsStatus"></div>
+              </div>
+
+              <!-- Step 5: Select Items -->
+              <div class="form-group" id="step5Content" style="display: none">
+                <label class="form-label">Select Items *</label>
+                <div class="dropdown-container">
+                  <button
+                    type="button"
+                    class="dropdown-toggle"
+                    id="itemsDropdownToggle"
+                    disabled
+                  >
+                    <span id="selectedItemsText"
+                      >Select items (multiple allowed)</span
+                    >
+                    <i class="fas fa-chevron-down"></i>
+                  </button>
+                  <div
+                    class="dropdown-menu multi-select-dropdown"
+                    id="itemsDropdownMenu"
+                  >
+                    <!-- Items will be loaded here -->
+                    <div class="empty-state">Select hosts first</div>
+                  </div>
+                </div>
+                <div class="chips-container" id="itemsChips">
+                  <!-- Selected items will appear here as chips -->
+                </div>
+                <div class="status-message" id="itemsStatus"></div>
+              </div>
+
+              <!-- Progress Bar -->
+              <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+              </div>
+            </form>
           </div>
-          <div class="selected-group-info" id="selectedGroupInfo" style="display: none;">
-            <div class="selected-tag">
-              <span id="selectedGroupName"></span>
-              <button type="button" class="tag-remove" id="clearHostGroupBtn">×</button>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="cancelBtn">
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="backBtn"
+              style="display: none"
+            >
+              Back
+            </button>
+            <button type="button" class="btn btn-primary" id="nextBtn">
+              Next
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="submitBtn"
+              style="display: none"
+              disabled
+            >
+              Create Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="content">
+      <div id="users" class="tab-content active">
+        <div class="users-header">
+          <h2>Users</h2>
+          <!-- <div class="search-container">
+            <div class="search-hint">Press Esc to clear search</div>
+            <div class="search-input-group">
+              <i class="fas fa-search search-icon"></i>
+              <input
+                type="text"
+                id="usersSearch"
+                class="search-input"
+                placeholder="Search users by name, username or role..."
+                aria-label="Search users"
+              />
+              <button
+                id="clearUsersSearch"
+                class="clear-search-btn"
+                style="display: none"
+              >
+                <i class="fas fa-times"></i>
+              </button>
             </div>
-          </div>
+            <div class="search-stats" id="usersSearchStats"></div>
+          </div> -->
         </div>
+        <table id="usersTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Name</th>
+              <th>SurName</th>
+              <th>Role</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
 
-        <!-- 4. Host Selection -->
-        <!-- Dashboard modal ke andar (line 281 ke aas paas) -->
-        <div class="dropdown-header" id="dashboardHostsDropdownHeader"> <!-- CHANGE -->
-          <span class="dropdown-placeholder">Click to select hosts</span>
-          <span class="dropdown-arrow">▼</span>
-        </div>
-        <div class="dropdown-list hidden" id="dashboardHostsDropdownList"> <!-- CHANGE -->
-          <div class="dropdown-search">
-            <input type="text" placeholder="Type to search hosts..." id="dashboardSearchHosts" autocomplete="off">
-            <!-- CHANGE -->
-            <span class="search-icon">🔍</span>
+      <div id="groups" class="tab-content">
+        <h2>User Groups</h2>
+        <button id="createGroupBtn">+ Create Group</button>
+        <div id="groupsContent">Loading...</div>
+      </div>
+
+      <!-- Dashboard Creation Form Section -->
+      <div id="dashboards" class="tab-content">
+        <div id="dashboardsContainer" class="dashboard-container"></div>
+      </div>
+
+      <div id="settings" class="tab-content">
+        <h2>Settings</h2>
+        <p>Coming later.</p>
+      </div>
+    </main>
+
+    <div id="userModal" class="modal hidden">
+      <div class="modal-content">
+        <form id="userForm">
+          <input type="hidden" id="userid" />
+
+          <label>Username</label>
+          <input id="username" required />
+
+          <label>Password</label>
+          <input id="passwd" type="password" />
+
+          <label>Name</label>
+          <input id="name" />
+
+          <label>Surname</label>
+          <input id="surname" />
+
+          <label>Role</label>
+          <select id="roleId"></select>
+
+          <div class="actions">
+            <button type="submit" id="submitUserBtn">Create</button>
+            <button type="button" id="cancelBtn">Cancel</button>
           </div>
-          <div class="dropdown-options" id="dashboardHostsOptions"> <!-- CHANGE -->
-            <div class="loading-options">Select host group first</div>
-          </div>
-        </div>
+        </form>
+      </div>
+    </div>
 
-        <!-- 5. Item Selection -->
-        <div class="form-group" id="itemSelectionGroup" style="display: none;">
-          <label class="form-label">
-            <span class="label-number">5</span> Select Items for Dashboard *
-          </label>
-
-          <div class="tabs-container">
-            <div class="tabs-header" id="hostTabs">
-              <!-- Host tabs will be dynamically added here -->
-            </div>
-            <div class="tabs-content" id="hostTabsContent">
-              <!-- Items for each host will be loaded here -->
-            </div>
-          </div>
-
-          <div class="selected-items-summary" id="selectedItemsSummary" style="display: none;">
-            <h4>📋 Selected Items Summary</h4>
-            <div id="selectedItemsList"></div>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary" id="submitBtn">
-            Create Dashboard
+    <!-- Create/Edit Group Modal -->
+    <div id="groupModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modalTitle">Create New Group</h3>
+          <button type="button" class="close-btn" id="closeGroupModal">
+            &times;
           </button>
-          <button type="button" class="btn btn-secondary" id="cancelDashboardBtn">Cancel</button>
         </div>
-      </form>
+
+        <form id="groupForm" class="modal-form">
+          <input type="hidden" id="groupId" />
+
+          <div class="form-group">
+            <label for="groupName">Group Name *</label>
+            <input
+              type="text"
+              id="groupName"
+              required
+              placeholder="Enter group name"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Select Users (Multiple)</label>
+            <div class="dropdown-container">
+              <div class="dropdown-header" id="usersDropdownHeader">
+                <span class="dropdown-placeholder">Select users</span>
+                <span class="dropdown-arrow">▼</span>
+              </div>
+              <div class="dropdown-list hidden" id="usersDropdownList">
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  id="searchUsers"
+                />
+                <div class="dropdown-options" id="usersOptions"></div>
+              </div>
+              <div class="selected-tags" id="selectedUsers"></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Select Hosts (Multiple) *</label>
+            <div class="dropdown-container">
+              <div class="dropdown-header" id="hostsDropdownHeader">
+                <span class="dropdown-placeholder">Select hosts</span>
+                <span class="dropdown-arrow">▼</span>
+              </div>
+              <div class="dropdown-list hidden" id="hostsDropdownList">
+                <input
+                  type="text"
+                  placeholder="Search hosts..."
+                  id="searchHosts"
+                />
+                <div class="dropdown-options" id="hostsOptions"></div>
+              </div>
+              <div class="selected-tags" id="selectedHosts"></div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Group</button>
+            <button type="button" class="btn btn-secondary" id="cancelGroupBtn">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <!-- View Dashboard Modal -->
-  <div id="viewDashboardModal" class="modal hidden">
-    <div class="modal-content" style="max-width: 700px;">
-      <div class="modal-header">
-        <h3>📊 Dashboard Details</h3>
-        <button type="button" class="close-btn" id="closeViewModal">&times;</button>
-      </div>
-      <div class="modal-body" id="viewDashboardContent">
-        <!-- Dashboard details will be loaded here -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="closeViewBtn">Close</button>
+    <!-- View Users Modal -->
+    <div id="viewUsersModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="viewUsersTitle">Group Users</h3>
+          <button type="button" class="close-btn" id="closeViewUsersBtn">
+            &times;
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div id="groupUsersList"></div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            id="closeUsersModalBtn"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Dashboard Edit Modal -->
-  <div id="editDashboardModal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Edit Dashboard</h3>
-        <button type="button" class="close-btn" id="closeEditDashboardModal">&times;</button>
-      </div>
-
-      <form id="editDashboardForm" class="modal-form">
-        <input type="hidden" id="editDashboardId">
-
-        <div class="form-group">
-          <label for="editDashboardName">Dashboard Name</label>
-          <input type="text" id="editDashboardName" required />
-        </div>
-
-        <div class="form-group">
-          <label for="editUserSelect">Client User</label>
-          <select id="editUserSelect" required>
-            <option value="">Select User</option>
-          </select>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Update Dashboard</button>
-          <button type="button" class="btn btn-secondary" id="cancelEditDashboardBtn">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-
-  <script type="module" src="../js/dashboard.js"></script>
-  <script type="module" src="../js/groups.js"></script>
-  <script type="module" src="../js/dashboard-managers.js"></script>
-</body>
-
+    <script type="module" src="../js/dashboard.js"></script>
+    <script type="module" src="../js/groups.js"></script>
+    <script type="module" src="../js/dashboard.actions.manager.js"></script>
+    <script type="module" src="../js/dashboard-managers.js"></script>
+  </body>
 </html>

@@ -1,4 +1,3 @@
-// dashboard.js
 import { fetchGroups } from './groups.js';
 import { openCreateUserModal, openEditUserModal, loadRoles } from './modals/users.modal.js';
 import { deleteUser } from './services/user.service.js';
@@ -6,18 +5,15 @@ import { deleteUser } from './services/user.service.js';
 const API_BASE = "http://localhost:8009/api/zabbix/v1";
 const usersTableBody = document.querySelector("#usersTable tbody");
 
-/* ---------- Auth Guard ---------- */
-const handleAuthError = (status) => {
+export const handleAuthError = (status) => {
     if (status === 401 || status === 403) {
         window.location.href = "../html/login.html";
     }
 };
 
-/* ---------- Tabs ---------- */
 const tabs = document.querySelectorAll(".nav-item");
 const contents = document.querySelectorAll(".tab-content");
 
-/* ---------- Fetch Users ---------- */
 export const fetchUsers = async () => {
     usersTableBody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
 
@@ -115,10 +111,8 @@ export const fetchUsers = async () => {
     }
 };
 
-/* ---------- Add User Button ---------- */
 document.getElementById("addUserBtn").addEventListener("click", openCreateUserModal);
 
-/* ---------- Tab Navigation ---------- */
 tabs.forEach(tab => {
     tab.addEventListener("click", () => {
         tabs.forEach(t => t.classList.remove("active"));
@@ -127,7 +121,12 @@ tabs.forEach(tab => {
         tab.classList.add("active");
         document.getElementById(tab.dataset.tab).classList.add("active");
 
-        if (tab.dataset.tab === "users") fetchUsers();
+        showHideButtons(tab.dataset.tab);
+
+        if (tab.dataset.tab === "users") {
+            fetchUsers();
+        }
+
         if (tab.dataset.tab === "groups") {
             fetchGroups();
         }
@@ -141,7 +140,12 @@ tabs.forEach(tab => {
 /* ---------- Dashboard Tab Handler ---------- */
 function initializeDashboardTab() {
     console.log("📊 Dashboard tab clicked");
-    
+
+    const createDashboardBtn = document.getElementById('openModalBtn');
+    if (createDashboardBtn) {
+        createDashboardBtn.style.display = 'inline-block';
+    }
+
     // Check if dashboards manager exists
     if (window.dashboardsManager) {
         window.dashboardsManager.loadDashboards();
@@ -150,9 +154,68 @@ function initializeDashboardTab() {
     }
 }
 
-/* ---------- Initial Load ---------- */
+/* ---------- Function to Show/Hide Buttons ---------- */
+function showHideButtons(activeTab) {
+    const addUserBtn = document.getElementById('addUserBtn');
+    const createDashboardBtn = document.getElementById('openModalBtn');
+    const createGroupBtn = document.getElementById('createGroupBtn');
+
+    console.log('showHideButtons called for tab:', activeTab); // Debug log
+
+    // Reset all buttons to hidden initially
+    if (addUserBtn) {
+        addUserBtn.style.display = 'none';
+        console.log('Add User button hidden'); // Debug log
+    }
+    if (createDashboardBtn) {
+        createDashboardBtn.style.display = 'none';
+        console.log('Create Dashboard button hidden'); // Debug log
+    }
+    if (createGroupBtn) {
+        createGroupBtn.style.display = 'none';
+    }
+
+    // Show appropriate button based on active tab
+    switch (activeTab) {
+        case 'users':
+            if (addUserBtn) {
+                addUserBtn.style.display = 'inline-block';
+                console.log('Add User button shown'); // Debug log
+            }
+            break;
+
+        case 'groups':
+            if (createGroupBtn) createGroupBtn.style.display = 'inline-block';
+            break;
+
+        case 'dashboards':
+            if (createDashboardBtn) {
+                createDashboardBtn.style.display = 'inline-block';
+                console.log('Create Dashboard button shown'); // Debug log
+            }
+            break;
+
+        default:
+            // Hide all buttons for other tabs
+            break;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Dashboard page loaded');
+    // Initially hide both buttons
+    const addUserBtn = document.getElementById('addUserBtn');
+    const createDashboardBtn = document.getElementById('openModalBtn');
+
+    if (addUserBtn) addUserBtn.style.display = 'none';
+    if (createDashboardBtn) createDashboardBtn.style.display = 'none';
+
+    // Check which tab is active initially and show appropriate button
+    const activeTab = document.querySelector('.nav-item.active');
+    if (activeTab && activeTab.dataset.tab) {
+        showHideButtons(activeTab.dataset.tab);
+    }
+
+    // Load initial data
     loadRoles();
     fetchUsers();
 });

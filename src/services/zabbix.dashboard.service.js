@@ -292,7 +292,7 @@ export default class ZabbixDashboardService {
                 authToken
             });
 
-            console.log('Total dashboards:', dashboards.length);
+            console.log('Total dashboards:', dashboards);
             return dashboards;
         } catch (error) {
             console.error('Error debugging dashboard structure:', error);
@@ -303,27 +303,61 @@ export default class ZabbixDashboardService {
     static async getAllDashboards({
         authToken,
         clientUserId = null,
-        includeWidgets = true
+        includeWidgets = true,
+        search = null
     }) {
         const params = {
-            output: "extend"
+            output: ["dashboardid", "name", "userid", "private"]
         };
 
         if (clientUserId) {
             params.userids = clientUserId;
         }
 
+        // 🔍 Search by dashboard name (server-side)
+        if (search) {
+            params.search = { name: search };
+            params.searchWildcardsEnabled = true;
+        }
+
+        // 1️⃣ Fetch dashboards
         const dashboards = await ZabbixService.rpcCall({
             method: "dashboard.get",
             params,
             authToken
         });
 
+        if (!dashboards.length) return [];
+
+        // 2️⃣ Collect unique userIds
+        const userIds = [
+            ...new Set(dashboards.map(d => d.userid).filter(Boolean))
+        ];
+
+        // 3️⃣ Fetch usernames in ONE call
+        const users = await ZabbixService.rpcCall({
+            method: "user.get",
+            params: {
+                userids: userIds,
+                output: ["userid", "username", "name", "surname"]
+            },
+            authToken
+        });
+
+        const userIdToName = new Map(
+            users.map(u => [
+                u.userid,
+                u.username || `${u.name || ""} ${u.surname || ""}`.trim()
+            ])
+        );
+
+        // 4️⃣ Final response
         return dashboards.map(dashboard => ({
             dashboardId: dashboard.dashboardid,
             name: dashboard.name,
             userId: dashboard.userid,
-            private: dashboard.private
+            userName: userIdToName.get(dashboard.userid) || "Unknown",
+            private: Number(dashboard.private)
         }));
     }
 
@@ -504,168 +538,6 @@ export default class ZabbixDashboardService {
         return {
             success: true,
             data: groups
-        };
-    }
-
-    // NEW: Create Multi-Host Dashboard
-    static async createMultiHostDashboard({
-        clientUserId,
-        hostGroupId,
-        dashboardName,
-        hostsData,
-        authToken
-    }) {
-        console.log('Creating multi-host dashboard:', {
-            clientUserId,
-            hostGroupId,
-            dashboardName,
-            hostsData
-        });
-
-        if (!clientUserId || !hostGroupId || !hostsData) {
-            throw new Error("clientUserId, hostGroupId and hostsData are required");
-        }
-
-        const hostIds = Object.keys(hostsData);
-        if (hostIds.length === 0) {
-            throw new Error("No hosts selected");
-        }
-
-        // Get all item IDs
-        const allItemIds = [];
-        Object.values(hostsData).forEach(itemIds => {
-            allItemIds.push(...itemIds);
-        });
-
-        if (allItemIds.length === 0) {
-            throw new Error("No items selected for dashboard");
-        }
-
-        // Get host details
-        const hosts = await ZabbixService.rpcCall({
-            method: "host.get",
-            params: {
-                hostids: hostIds,
-                output: ["hostid", "name", "host"]
-            },
-            authToken
-        });
-
-        if (hosts.length === 0) {
-            throw new Error("Selected hosts not found");
-        }
-
-        // Get all items details
-        const items = await ZabbixService.rpcCall({
-            method: "item.get",
-            params: {
-                itemids: allItemIds,
-                output: ["itemid", "name", "key_", "hostid"]
-            },
-            authToken
-        });
-
-        // Create widgets for each host
-        const widgets = [];
-        let yPosition = 0;
-        const widgetHeight = 8;
-
-        for (const host of hosts) {
-            const hostItemIds = hostsData[host.hostid] || [];
-            const hostItems = items.filter(item => 
-                hostItemIds.includes(item.itemid) && item.hostid === host.hostid
-            );
-            
-            if (hostItems.length === 0) {
-                console.warn(`No items found for host ${host.hostid}, skipping widget`);
-                continue;
-            }
-
-            const hostName = host.name || host.host || `Host ${host.hostid}`;
-            const widgetName = `Traffic - ${hostName}`;
-            
-            // Take first two items for this widget (for simplicity)
-            const widgetItems = hostItems.slice(0, 2);
-            
-            const fields = [
-                {
-                    type: 1,
-                    name: "ds.0.hosts.0",
-                    value: hostName
-                },
-                {
-                    type: 1,
-                    name: "ds.0.items.0",
-                    value: widgetItems[0]?.name || "Item 1"
-                },
-                {
-                    type: 1,
-                    name: "ds.0.items.1",
-                    value: widgetItems[1]?.name || "Item 2"
-                },
-                {
-                    type: 1,
-                    name: "ds.0.color",
-                    value: "1A7C11"
-                },
-                {
-                    type: 0,
-                    name: "righty",
-                    value: 0
-                },
-                {
-                    type: 0,
-                    name: "legend",
-                    value: 1
-                },
-                {
-                    type: 0,
-                    name: "legend_statistic",
-                    value: 1
-                }
-            ];
-
-            widgets.push({
-                type: "svggraph",
-                name: widgetName,
-                x: 0,
-                y: yPosition,
-                width: 24,
-                height: widgetHeight,
-                fields: fields
-            });
-
-            yPosition += widgetHeight;
-        }
-
-        if (widgets.length === 0) {
-            throw new Error("No widgets created. Check if items exist for selected hosts.");
-        }
-
-        // Create the dashboard
-        const result = await ZabbixService.rpcCall({
-            method: "dashboard.create",
-            params: {
-                name: dashboardName || `Multi-Host Dashboard - ${hosts.length} Hosts`,
-                userid: parseInt(clientUserId),
-                private: 0,
-                pages: [
-                    {
-                        name: "Traffic Overview",
-                        widgets: widgets
-                    }
-                ]
-            },
-            authToken
-        });
-
-        return {
-            success: true,
-            dashboardId: result.dashboardids[0],
-            hostCount: hosts.length,
-            widgetCount: widgets.length,
-            totalItems: allItemIds.length,
-            message: `Dashboard created with ${widgets.length} widgets for ${hosts.length} hosts`
         };
     }
 }

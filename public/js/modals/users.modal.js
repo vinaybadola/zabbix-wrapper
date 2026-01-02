@@ -6,7 +6,7 @@ let roles = [];
 
 const modal = document.getElementById("userModal");
 const form = document.getElementById("userForm");
-const submitBtn = document.getElementById("submitBtn");
+const submitBtn = document.getElementById("submitUserBtn");
 const roleSelect = document.getElementById("roleId");
 const cancelBtn = document.querySelector('.actions button[type="button"]');
 

@@ -1,19 +1,14 @@
-import zabbixService from "../services/zabbix.service.js";
+import HostService from "../services/host.service.js";
 
 export default class HostController {
 
   static getHosts = async (req, res, next) => {
     try {
-      const result = await zabbixService.rpcCall({
-        method: "host.get",
-        params: {
-          output: ["hostid", "name"],
-          monitored_hosts: true
-        },
+      const result = await HostService.getAllHosts({
         authToken: req.zabbix.authToken
       });
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
         data: result
       });
@@ -35,12 +30,12 @@ export default class HostController {
         });
       }
 
-      const result = await zabbixService.createHostGroup({
+      const result = await HostService.createHostGroup({
         name,
         authToken: req.zabbix.authToken
       });
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         data: result
       });
@@ -62,7 +57,7 @@ export default class HostController {
         });
       }
 
-      const result = await zabbixService.addHostToGroup({
+      const result = await HostService.addHostToGroup({
         hostId,
         groupId,
         authToken: req.zabbix.authToken
@@ -90,7 +85,7 @@ export default class HostController {
         });
       }
 
-      const result = await zabbixService.createHost({
+      const result = await HostService.createHost({
         host,
         name,
         ip,
@@ -108,5 +103,39 @@ export default class HostController {
       next(err);
     }
   };
+
+  static fetchHostFromHostGroups = async (req, res, next) => {
+    try {
+      const { hostGroupIds } = req.body;
+
+      const data = await HostService.fetchHostsFromHostGroup({
+        hostGroupIds,
+        authToken: req.zabbix.authToken
+      })
+
+      return res.status(200).json({ success: true, message: "ok", data });
+
+    } catch (error) {
+      console.error(`Error fetching hosts from host group Ids : ${error.message}`);
+      next(error)
+    }
+  }
+
+  static fetchHostItems = async (req, res, next) => {
+    try {
+      const { hostIds } = req.body;
+
+      const data = await HostService.fetchHostItems({
+        hostIds,
+        authToken: req.zabbix.authToken
+      })
+
+      return res.status(200).json({ success: true, message: "ok", data });
+
+    } catch (error) {
+      console.error(`Error fetching hosts items from host Ids : ${error.message}`);
+      next(error)
+    }
+  }
 
 }

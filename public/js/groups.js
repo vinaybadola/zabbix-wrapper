@@ -843,10 +843,6 @@ const openViewGroupModal = async (group) => {
   }
 };
 
-/* ---------- REMOVE OLD CODE ---------- */
-// Yeh section remove karna hai kyunki yeh dashboard creation ke liye tha
-// aur groups page mein conflict kar raha hai
-
 /* ---------- INITIALIZE EVERYTHING ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Initializing groups page...');

@@ -1,5 +1,4 @@
-import zabbixService from "../services/zabbix.service.js";
-
+import UserService from "../services/user.service.js";
 export default class UserController {
 
     static createClientUser = async (req, res, next) => {
@@ -19,7 +18,7 @@ export default class UserController {
                 });
             }
 
-            const result = await zabbixService.createUser({
+            const result = await UserService.createUser({
                 username,
                 password: passwd,
                 name,
@@ -60,7 +59,7 @@ export default class UserController {
             if (surname) payload.surname = surname;
             if (roleId) payload.roleid = roleId;
 
-            await zabbixService.updateUser({
+            await UserService.updateUser({
                 authToken: req.zabbix.authToken,
                 payload
             });
@@ -78,7 +77,9 @@ export default class UserController {
 
     static async getAllUsers(req, res, next) {
         try {
-            const data = await zabbixService.getUsers({ authToken: req.zabbix.authToken });
+            const {search} = req.query;
+
+            const data = await UserService.getUsers({ authToken: req.zabbix.authToken,  search: search || null });
 
             return res.status(200).json({
                 success: true,
@@ -93,33 +94,6 @@ export default class UserController {
         }
     }
 
-    // static deleteClientUser = async (req, res, next) => {
-    //     try {
-    //         const { userid } = req.body;
-
-    //         if (!userid) {
-    //             return res.status(400).json({
-    //                 success: false,
-    //                 message: "userid is required for deletion"
-    //             });
-    //         }
-
-    //         await zabbixService.deleteUser({
-    //             authToken: req.zabbix.authToken,
-    //             userid: parseInt(userid)
-    //         });
-
-    //         return res.status(200).json({
-    //             success: true,
-    //             message: "User deleted successfully"
-    //         });
-
-    //     } catch (err) {
-    //         console.error(`Error deleting user: ${err.message}`);
-    //         next(err);
-    //     }
-    // };
-
     static deleteClientUser = async (req, res, next) => {
         try {
             const { userid } = req.body;
@@ -131,8 +105,7 @@ export default class UserController {
                 });
             }
 
-            // Call static deleteUser method
-            await zabbixService.deleteUser({
+            await UserService.deleteUser({
                 authToken: req.zabbix.authToken,
                 userid: parseInt(userid)
             });
@@ -144,11 +117,36 @@ export default class UserController {
 
         } catch (err) {
             console.error(`Error deleting user: ${err.message}`);
-            return res.status(500).json({
-                success: false,
-                message: err.message || "Internal Server Error"
-            });
+            next(err)
         }
     };
-  
+
+    static getUserHostGroups = async (req, res, next) => {
+        try {
+            const { userid } = req.body;
+
+            if (!userid) {
+                return res.status(400).json({
+                    success: false,
+                    message: "userid is required for deletion"
+                });
+            }
+
+            // Call static deleteUser method
+            const data = await UserService.fetchUserHostGroups({
+                userId: userid,
+                authToken: req.zabbix.authToken,
+            });
+
+            return res.status(200).json({
+                success: true,
+                data,
+                message: "users host group fetched successfully"
+            });
+
+        } catch (error) {
+            console.error(`Error occurred while fetching user host groups : ${error.message}`);
+            next(error);
+        }
+    }
 }

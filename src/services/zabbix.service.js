@@ -1,186 +1,85 @@
 import axios from "axios";
 import { zabbixUrl } from "../../config/env.config.js";
-import crypto from "crypto";
-import { redis } from "../../config/redis.js";
 
 export default class ZabbixService {
 
   static requestId = 1;
 
-  static async rpcCall({ method, params = {}, authToken = null }) {
-    try {
-      const payload = {
-        jsonrpc: "2.0",
-        method,
-        params,
-        id: this.requestId++
-      };
-
-      const headers = {
-        "Content-Type": "application/json"
-      };
-
-      if (authToken) {
-        headers.Authorization = `Bearer ${authToken}`;
-      }
-
-      const response = await axios.post(zabbixUrl, payload, { headers });
-
-      if (response.data.error) {
-        throw new Error(response.data.error.data);
-      }
-
-      return response.data.result;
-
-    } catch (error) {
-      throw {
-        statusCode: 500,
-        message: error.message || "Zabbix API error"
-      };
-    }
-  }
-
-  static async login(username, password) {
-    const authToken = await this.rpcCall({
-      method: "user.login",
-      params: { username, password }
-    });
-
-    const sessionId = crypto.randomUUID();
-
-    await redis.set(
-      `zabbix:session:${sessionId}`,
-      JSON.stringify({ authToken, username }),
-      "EX",
-      1800
-    );
-
-    return { sessionId };
-  }
-
-  static async createHostGroup({ name, authToken }) {
-    return await this.rpcCall({
-      method: "hostgroup.create",
-      params: { name },
-      authToken
-    });
-  }
-
-  static async addHostToGroup({ hostId, groupId, authToken }) {
-    return await this.rpcCall({
-      method: "host.update",
-      params: {
-        hostid: hostId,
-        groups: [{ groupid: groupId }]
-      },
-      authToken
-    });
-  }
-
-  static async createHost({
-    host,
-    name,
-    ip,
-    groupIds = [],
-    templateIds = [],
-    authToken
+  static async rpcCall({
+    method,
+    params = {},
+    authToken = null,
+    timeout = 10000,
+    maxRetries = 2
   }) {
-    if (!groupIds.length) {
-      throw new Error("At least one host group is required");
-    }
+    let lastError;
 
-    const params = {
-      host,           // technical name (unique)
-      name,           // display name
-      interfaces: [
-        {
-          type: 1,    // 1 = Agent
-          main: 1,
-          useip: 1,
-          ip,
-          dns: "",
-          port: "10050"
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const payload = {
+          jsonrpc: "2.0",
+          method,
+          params,
+          id: this.requestId++
+        };
+
+        const headers = {
+          "Content-Type": "application/json"
+        };
+
+        if (authToken) {
+          headers.Authorization = `Bearer ${authToken}`;
         }
-      ],
-      groups: groupIds.map(id => ({ groupid: id }))
-    };
 
-    // Attach templates if provided
-    if (templateIds.length) {
-      params.templates = templateIds.map(id => ({ templateid: id }));
+        const response = await axios.post(zabbixUrl, payload, {
+          headers,
+          timeout
+        });
+
+        if (response.data.error) {
+          throw new Error(response.data.error.data);
+        }
+
+        return response.data.result;
+
+      } catch (error) {
+        lastError = error;
+
+        // Don't retry on timeout in last attempt
+        if (attempt === maxRetries) break;
+
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+          continue;
+        }
+
+        break;
+      }
     }
 
-    return await this.rpcCall({
-      method: "host.create",
-      params,
-      authToken
-    });
+    if (lastError.code === 'ECONNABORTED' || lastError.message.includes('timeout')) {
+      throw {
+        statusCode: 504,
+        message: `Request timeout after ${maxRetries + 1} attempts. Zabbix server is taking too long to respond.`
+      };
+    }
+
+    throw {
+      statusCode: 500,
+      message: lastError.message || "Zabbix API error"
+    };
   }
 
-  static async getUsers({ authToken }) {
+  static async getUsersWithGroups({ authToken }) {
+    if (!authToken) {
+      throw new Error("No authToken provided");
+    }
+
     return await this.rpcCall({
       method: "user.get",
       params: {
-        output: ["userid", "username", "name", "surname", "roleid"],
-        selectRole: ["roleid", "name"]
-      },
-      authToken
-    });
-  }
-
-  static async getRoles({ authToken }) {
-    return await this.rpcCall({
-      method: "role.get",
-      params: {
-        output: ["roleid", "name", "type"]
-      },
-      authToken
-    });
-  }
-
- // ✅ ALWAYS WORKING METHOD
-static async getUsersWithGroups({ authToken }) {
-  if (!authToken) {
-    throw new Error("No authToken provided");
-  }
-
-  return await this.rpcCall({
-    method: "user.get",
-    params: {
-      output: ["userid", "username", "name", "surname"],
-      selectUsrgrps: ["usrgrpid", "name"]
-    },
-    authToken
-  });
-}
-
-
-  static async createUser({
-    username,
-    password,
-    name,
-    surname,
-    roleId,
-    authToken
-  }) {
-    return await this.rpcCall({
-      method: "user.create",
-      params: {
-        username,
-        passwd: password,
-        name,
-        surname,
-        roleid: roleId,
-      },
-      authToken
-    });
-  }
-
-  static async getUserGroups({ authToken }) {
-    return await this.rpcCall({
-      method: "usergroup.get",
-      params: {
-        output: ["usrgrpid", "name"]
+        output: ["userid", "username", "name", "surname"],
+        selectUsrgrps: ["usrgrpid", "name"]
       },
       authToken
     });
@@ -263,44 +162,6 @@ static async getUsersWithGroups({ authToken }) {
       updateResult,
       verifyResult
     };
-  }
-
-  static async updateUser({ authToken, payload }) {
-    return await this.rpcCall({
-      method: "user.update",
-      params: payload,
-      authToken
-    });
-  }
-
-  // async deleteUser({ authToken, userid }) {
-  //   try {
-  //     const response = await this.makeRequest('user.delete', authToken, [userid]);
-
-  //     if (response.error) {
-  //       throw new Error(response.error.data || 'Failed to delete user');
-  //     }
-
-  //     return response.result;
-  //   } catch (err) {
-  //     console.error(`Zabbix API deleteUser error: ${err.message}`);
-  //     throw err;
-  //   }
-  // }
-
-  static async deleteUser({ authToken, userid }) {
-    try {
-      const response = await this.rpcCall({
-        method: "user.delete",
-        params: [userid], // Zabbix API expects an array of IDs
-        authToken
-      });
-
-      return response;
-    } catch (err) {
-      console.error(`Zabbix API deleteUser error: ${err.message}`);
-      throw err;
-    }
   }
 
 }

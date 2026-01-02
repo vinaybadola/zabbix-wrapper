@@ -1,5 +1,5 @@
 import { nodeEnv } from "../../config/env.config.js";
-import ZabbixService from "../services/zabbix.service.js";
+import AuthService from "../services/auth.service.js";
 
 export default class AuthController {
 
@@ -14,7 +14,7 @@ export default class AuthController {
                 });
             }
 
-            const { sessionId } = await ZabbixService.login(username, password);
+            const { sessionId } = await AuthService.login(username, password);
 
             res.cookie("zbx_session", sessionId, {
                 httpOnly: true,
@@ -45,9 +45,9 @@ export default class AuthController {
         }
     }
 
-    static async getAllRoles(req, res, next) {
+    static getAllRoles = async (req, res, next) => {
         try {
-            const data = await ZabbixService.getRoles({ authToken: req.zabbix.authToken });
+            const data = await AuthService.getRoles({ authToken: req.zabbix.authToken });
 
             return res.status(200).json({
                 success: true,

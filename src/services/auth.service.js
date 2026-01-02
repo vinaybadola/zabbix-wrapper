@@ -1,0 +1,37 @@
+import crypto from "crypto";
+import { redis } from "../../config/redis.js";
+import ZabbixService from "./zabbix.service.js";
+
+export default class AuthService {
+
+    static async login(username, password) {
+        const authToken = await ZabbixService.rpcCall({
+            method: "user.login",
+            params: { username, password }
+        });
+
+        const sessionId = crypto.randomUUID();
+
+        await redis.set(
+            `zabbix:session:${sessionId}`,
+            JSON.stringify({ authToken, username }),
+            "EX",
+            1800
+        );
+
+        return { sessionId };
+    }
+
+    static async getRoles({ authToken }) {
+        if (!authToken) {
+            throw new Error("Please provide the auth token for fetchign roles!")
+        }
+        return await ZabbixService.rpcCall({
+            method: "role.get",
+            params: {
+                output: ["roleid", "name", "type"]
+            },
+            authToken
+        });
+    }
+}
