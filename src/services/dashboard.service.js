@@ -79,14 +79,14 @@ export default class DashboardService {
                 fields.push({
                     type: 1,
                     name: "ds.0.color.0",
-                    value: "F4511E" 
+                    value: "F4511E"
                 });
 
                 // Color for second item line
                 fields.push({
                     type: 1,
                     name: "ds.0.color.1",
-                    value: "FF5722" 
+                    value: "FF5722"
                 });
 
                 // OR single color for all items
@@ -179,6 +179,157 @@ export default class DashboardService {
             throw {
                 statusCode: 500,
                 message: `Dashboard creation failed: ${error.message}`
+            };
+        }
+    }
+
+    static async updateClientDashboard({
+        dashboardId,
+        dashboardName,
+        hostIds,
+        itemIds,
+        authToken
+    }) {
+        try {
+            if (!authToken) throw new Error("No auth token provided");
+            if (!dashboardId || !dashboardName || !hostIds || !itemIds) {
+                throw new Error("Missing required parameters");
+            }
+
+            /* ---------------------------
+               1. Validate dashboard exists
+            ----------------------------*/
+            const existingDashboard = await ZabbixService.rpcCall({
+                method: "dashboard.get",
+                params: {
+                    dashboardids: dashboardId,
+                    output: ["dashboardid", "name"]
+                },
+                authToken
+            });
+
+            if (!existingDashboard || existingDashboard.length === 0) {
+                throw new Error("Dashboard not found");
+            }
+
+            /* ---------------------------
+               2. Fetch hosts
+            ----------------------------*/
+            const hostsResponse = await ZabbixService.rpcCall({
+                method: "host.get",
+                params: {
+                    hostids: hostIds,
+                    output: ["hostid", "name"]
+                },
+                authToken
+            });
+
+            if (!hostsResponse.length) throw new Error("No hosts found");
+
+            /* ---------------------------
+               3. Fetch items
+            ----------------------------*/
+            const itemsResponse = await ZabbixService.rpcCall({
+                method: "item.get",
+                params: {
+                    itemids: itemIds,
+                    output: ["itemid", "name", "key_", "hostid"]
+                },
+                authToken
+            });
+
+            if (!itemsResponse.length) throw new Error("No items found");
+
+            /* ---------------------------
+               4. Rebuild pages (same as create)
+            ----------------------------*/
+            const pages = hostsResponse.map(host => {
+                const hostItems = itemsResponse.filter(
+                    item => item.hostid === host.hostid
+                );
+
+                if (!hostItems.length) return null;
+
+                const fields = [];
+
+                // dataset host
+                fields.push({
+                    type: 1,
+                    name: "ds.0.hosts.0",
+                    value: host.name
+                });
+
+                // items
+                hostItems.slice(0, 2).forEach((item, idx) => {
+                    fields.push({
+                        type: 1,
+                        name: `ds.0.items.${idx}`,
+                        value: item.name
+                    });
+                });
+
+                // colors
+                fields.push(
+                    { type: 1, name: "ds.0.color.0", value: "F4511E" },
+                    { type: 1, name: "ds.0.color.1", value: "FF5722" },
+                    { type: 0, name: "legend", value: 1 },
+                    { type: 0, name: "legend_statistic", value: 1 }
+                );
+
+                // widget title
+                const hasIn = hostItems.some(i => i.key_.includes("net.if.in"));
+                const hasOut = hostItems.some(i => i.key_.includes("net.if.out"));
+
+                const widgetTitle =
+                    hasIn && hasOut
+                        ? "Traffic (Bits In / Out)"
+                        : `${host.name} - ${hostItems.length} items`;
+
+                return {
+                    name: `Host: ${host.name}`,
+                    widgets: [
+                        {
+                            type: "svggraph",
+                            name: widgetTitle,
+                            x: 0,
+                            y: 0,
+                            width: 72,
+                            height: 10,
+                            fields
+                        }
+                    ]
+                };
+            }).filter(Boolean);
+
+            /* ---------------------------
+               5. Update dashboard (FULL overwrite)
+            ----------------------------*/
+            const result = await ZabbixService.rpcCall({
+                method: "dashboard.update",
+                params: {
+                    dashboardid: dashboardId,
+                    name: dashboardName,
+                    pages
+                },
+                authToken
+            });
+
+            return {
+                success: true,
+                dashboardId,
+                message: "Dashboard updated successfully",
+                details: {
+                    hosts: hostsResponse.map(h => h.name),
+                    totalItems: itemsResponse.length,
+                    pages: pages.length
+                }
+            };
+
+        } catch (error) {
+            console.error("Error updating dashboard:", error);
+            throw {
+                statusCode: 500,
+                message: `Dashboard update failed: ${error.message}`
             };
         }
     }
