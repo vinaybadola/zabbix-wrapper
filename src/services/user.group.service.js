@@ -1,5 +1,4 @@
 import ZabbixService from "./zabbix.service.js";
-
 export default class UserGroupService {
 
     /* -------------------------
@@ -16,7 +15,7 @@ export default class UserGroupService {
                 },
                 authToken
             }),
-            ZabbixService.getUsersWithGroups({ authToken })
+            this.getUsersWithGroups({ authToken })
         ]);
 
         return groups.map(group => {
@@ -40,19 +39,18 @@ export default class UserGroupService {
     }
 
     /* -------------------------
-       HOST GROUPS
-    --------------------------*/
-    static async getHostGroups({ authToken }) {
-        return ZabbixService.getHostGroups({ authToken });
-    }
-
-    /* -------------------------
        CREATE USER GROUP
     --------------------------*/
     static async createUserGroup({ name, userIds = [], authToken }) {
-        const result = await ZabbixService.createUserGroup({
-            name,
-            userIds,
+        if (!name) {
+            throw new Error("Group name is required");
+        }
+        const result = await ZabbixService.rpcCall({
+            method: "usergroup.create",
+            params: {
+                name,
+                users: userIds.map(id => ({ userid: id }))
+            },
             authToken
         });
 
@@ -73,7 +71,7 @@ export default class UserGroupService {
     }) {
         const ids = hostGroupIds.map(String);
 
-        return ZabbixService.setUserGroupPermissions({
+        return this.setUserGroupPermissions({
             userGroupId,
             hostGroupIds: ids,
             permission,
@@ -90,5 +88,70 @@ export default class UserGroupService {
             params: [groupId],
             authToken
         });
+    }
+
+    static async getUsersWithGroups({ authToken }) {
+        if (!authToken) {
+            throw new Error("No authToken provided");
+        }
+
+        return await ZabbixService.rpcCall({
+            method: "user.get",
+            params: {
+                output: ["userid", "username", "name", "surname"],
+                selectUsrgrps: ["usrgrpid", "name"]
+            },
+            authToken
+        });
+    }
+
+    static async setUserGroupPermissions({
+        userGroupId,
+        hostGroupIds,
+        permission = 2, // 2 = READ, 3 = WRITE
+        authToken
+    }) {
+        if (!userGroupId || !Array.isArray(hostGroupIds) || !hostGroupIds.length) {
+            throw new Error("userGroupId and hostGroupIds are required");
+        }
+
+        // 1️⃣ ENABLE GUI ACCESS (CRITICAL)
+        await ZabbixService.rpcCall({
+            method: "usergroup.update",
+            params: {
+                usrgrpid: userGroupId,
+                gui_access: 1
+            },
+            authToken
+        });
+
+        // 2️⃣ SET HOST GROUP PERMISSIONS
+        const updateResult = await ZabbixService.rpcCall({
+            method: "usergroup.update",
+            params: {
+                usrgrpid: userGroupId,
+                hostgroup_rights: hostGroupIds.map(id => ({
+                    id,          // <-- REQUIRED for your Zabbix version
+                    permission   // 2 = READ, 3 = WRITE
+                }))
+            },
+            authToken
+        });
+
+        // 3️⃣ OPTIONAL VERIFICATION (safe to keep during dev)
+        const verifyResult = await ZabbixService.rpcCall({
+            method: "usergroup.get",
+            params: {
+                usrgrpids: userGroupId,
+                selectHostGroupRights: "extend",
+                output: ["gui_access"]
+            },
+            authToken
+        });
+
+        return {
+            updateResult,
+            verifyResult
+        };
     }
 }

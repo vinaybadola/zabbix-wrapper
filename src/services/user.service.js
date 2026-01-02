@@ -1,3 +1,4 @@
+import HostService from "./host.service.js";
 import ZabbixService from "./zabbix.service.js";
 
 export default class UserService {
@@ -108,17 +109,11 @@ export default class UserService {
             return groupsWithHosts;
         }
 
-        const hostGroups = await ZabbixService.rpcCall({
-            method: "hostgroup.get",
-            params: {
-                groupids: allHostGroupIds,
-                output: ["groupid", "name"]
-            },
-            authToken
-        });
-
+        const hostGroups = await HostService.getHostGroups({authToken});
+        console.log('hostGroups', hostGroups);
+        
         const hostGroupIdToName = new Map(
-            hostGroups.map(hg => [hg.groupid, hg.name])
+            hostGroups.data.map(hg => [hg.groupid, hg.name])
         );
 
         return groupsWithHosts.map(group => ({

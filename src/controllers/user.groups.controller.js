@@ -2,9 +2,6 @@ import UserGroupService from "../services/user.group.service.js";
 
 export default class UserGroupController {
 
-    /* -------------------------
-       GET USER GROUPS
-    --------------------------*/
     static userGroups = async (req, res, next) => {
         try {
             const data = await UserGroupService.getUserGroupsWithUsers({
@@ -25,24 +22,6 @@ export default class UserGroupController {
         }
     };
 
-    /* -------------------------
-       HOST GROUPS
-    --------------------------*/
-    static hostGroups = async (req, res, next) => {
-        try {
-            const data = await UserGroupService.getHostGroups({
-                authToken: req.zabbix.authToken
-            });
-
-            res.status(200).json({ success: true, message: "ok", data });
-        } catch (err) {
-            next(err);
-        }
-    };
-
-    /* -------------------------
-       CREATE CLIENT GROUP
-    --------------------------*/
     static createClientUserGroup = async (req, res, next) => {
         try {
             const { name, userIds = [], hostGroupIds } = req.body;
@@ -80,9 +59,6 @@ export default class UserGroupController {
         }
     };
 
-    /* -------------------------
-       UPDATE PERMISSIONS
-    --------------------------*/
     static updateUserGroupPermissions = async (req, res, next) => {
         try {
             const { userGroupId, hostGroupIds } = req.body;
@@ -107,9 +83,6 @@ export default class UserGroupController {
         }
     };
 
-    /* -------------------------
-       DELETE GROUP
-    --------------------------*/
     static deleteUserGroup = async (req, res, next) => {
         try {
             const { groupId } = req.params;

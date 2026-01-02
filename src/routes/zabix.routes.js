@@ -24,6 +24,7 @@ router.post("/host-groups", HostController.createHostGroup);
 router.post("/host-groups/add-host", HostController.addHostToGroup);
 router.post("/hosts/by-host-groups", HostController.fetchHostFromHostGroups);
 router.post("/hosts/items", HostController.fetchHostItems);
+router.get("/hosts/groups", HostController.fetchHostGroups);
 
 // User routes
 router.post("/user/submit", UserController.createClientUser);
@@ -34,7 +35,6 @@ router.delete("/user/delete", UserController.deleteClientUser);
 
 // User Group routes
 router.get("/users/groups", UserGroupController.userGroups);
-router.get("/hosts/groups", UserGroupController.hostGroups);
 router.post("/user/groups/submit", UserGroupController.createClientUserGroup);
 router.put("/user/groups/permissions", UserGroupController.updateUserGroupPermissions);
 router.delete("/user/groups/:groupId/delete", UserGroupController.deleteUserGroup);

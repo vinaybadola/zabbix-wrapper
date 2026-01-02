@@ -249,14 +249,14 @@ const resetGroupForm = () => {
 
   // Clear dropdown options
   if (usersOptions) usersOptions.innerHTML = '';
-  
+
   const hostsOptions = document.getElementById('hostsOptions');
   if (hostsOptions) hostsOptions.innerHTML = '';
 
   // Reset dropdown placeholders
   const usersPlaceholder = document.querySelector('#usersDropdownHeader .dropdown-placeholder');
   const hostsPlaceholder = document.querySelector('#hostsDropdownHeader .dropdown-placeholder');
-  
+
   if (usersPlaceholder) usersPlaceholder.textContent = 'Select users';
   if (hostsPlaceholder) hostsPlaceholder.textContent = 'Select hosts';
 
@@ -369,7 +369,6 @@ export const fetchGroups = async () => {
 
 /* ---------- POPULATE FORM ---------- */
 const populateGroupForm = async (selectedUsers = [], selectedHosts = []) => {
-  console.log('Populating form with:', { selectedUsers, selectedHosts });
 
   // Clear previous selections
   selectedUserIds = new Set(selectedUsers);
@@ -377,28 +376,25 @@ const populateGroupForm = async (selectedUsers = [], selectedHosts = []) => {
 
   if (selectedUsersContainer) selectedUsersContainer.innerHTML = '';
   if (selectedHostsContainer) selectedHostsContainer.innerHTML = '';
-  
+
   if (usersOptions) usersOptions.innerHTML = '';
-  
-  // YEH CHANGE KARNA HAI - dynamically get element
+
   const hostsOptions = document.getElementById('hostsOptions');
   if (hostsOptions) hostsOptions.innerHTML = '';
 
   try {
     // Fetch users
-    const usersRes = await fetch("http://localhost:8009/api/zabbix/v1/users", { 
-      credentials: "include" 
+    const usersRes = await fetch("http://localhost:8009/api/zabbix/v1/users", {
+      credentials: "include"
     });
     const usersResult = await usersRes.json();
     const allUsers = usersResult.data || [];
 
-    console.log('Total users fetched:', allUsers.length);
 
     // Populate users dropdown
     if (usersOptions) {
       allUsers.forEach(user => {
         const isSelected = selectedUserIds.has(user.userid);
-        console.log(`User ${user.userid} - ${user.username}: selected=${isSelected}`);
         const option = createOptionElement(user.userid, user.username, 'user', isSelected);
         usersOptions.appendChild(option);
 
@@ -409,21 +405,21 @@ const populateGroupForm = async (selectedUsers = [], selectedHosts = []) => {
     }
 
     // Fetch host groups
-    const hostRes = await fetch("http://localhost:8009/api/zabbix/v1/hosts/groups", { 
-      credentials: "include" 
+    const hostRes = await fetch("http://localhost:8009/api/zabbix/v1/hosts/groups", {
+      method: "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include"
     });
+
     const hostResult = await hostRes.json();
     const allHosts = hostResult.data || [];
-
-    console.log('Total host groups fetched:', allHosts.length);
-    console.log('Selected host groups for edit:', selectedHosts);
 
     // Populate hosts dropdown
     const hostsOptions = document.getElementById('hostsOptions');
     if (hostsOptions) {
       allHosts.forEach(host => {
         const isSelected = selectedHostIds.has(host.groupid);
-        console.log(`Host ${host.groupid} - ${host.name}: selected=${isSelected}`);
         const option = createOptionElement(host.groupid, host.name, 'host', isSelected);
         hostsOptions.appendChild(option);
 
@@ -432,9 +428,6 @@ const populateGroupForm = async (selectedUsers = [], selectedHosts = []) => {
         }
       });
     }
-
-    console.log('Final selectedUserIds:', Array.from(selectedUserIds));
-    console.log('Final selectedHostIds:', Array.from(selectedHostIds));
 
   } catch (error) {
     console.error('Error loading data:', error);
@@ -445,10 +438,9 @@ const populateGroupForm = async (selectedUsers = [], selectedHosts = []) => {
 /* ---------- OPEN CREATE GROUP ---------- */
 if (createGroupBtn) {
   createGroupBtn.addEventListener("click", async () => {
-    console.log('Opening create group modal');
     isEditMode = false;
     if (modalTitle) modalTitle.textContent = 'Create New Group';
-    
+
     // Reset form
     resetGroupForm();
 
@@ -468,8 +460,6 @@ if (groupForm) {
     const userIds = Array.from(selectedUserIds);
     const hostGroupIds = Array.from(selectedHostIds);
 
-    console.log('Form submission:', { name, userIds, hostGroupIds, isEditMode });
-
     if (!name) {
       alert('Please enter group name');
       return;
@@ -488,7 +478,6 @@ if (groupForm) {
     try {
       if (!isEditMode) {
         // CREATE
-        console.log('Creating new group...');
         const createRes = await fetch("http://localhost:8009/api/zabbix/v1/user/groups/submit", {
           method: "POST",
           credentials: "include",
@@ -501,7 +490,6 @@ if (groupForm) {
         });
 
         const createResult = await createRes.json();
-        console.log('Create response:', createResult);
 
         if (!createResult.success) {
           throw new Error(createResult.message || "Create failed");
@@ -631,7 +619,7 @@ const deleteGroup = async (group) => {
 
   } catch (err) {
     console.error('Delete error:', err);
-    
+
     // If first method fails, try alternative
     if (err.message.includes('404') || err.message.includes('Not Found')) {
       console.log('Trying alternative delete method...');
@@ -646,7 +634,7 @@ const deleteGroup = async (group) => {
 const deleteGroupAlternative = async (group) => {
   try {
     console.log('Trying alternative delete method...');
-    
+
     // Method 2: Try with body parameter (same as user delete)
     const res = await fetch("http://localhost:8009/api/zabbix/v1/user/groups/delete", {
       method: "DELETE",
@@ -671,7 +659,7 @@ const deleteGroupAlternative = async (group) => {
 
   } catch (err) {
     console.error('Alternative delete error:', err);
-    
+
     // Method 3: Disable group instead
     if (err.message.includes('404') || err.message.includes('Not Found') || err.message.includes('500')) {
       if (confirm(`Delete API not available. Remove all permissions from group "${group.name}" instead?`)) {
@@ -701,7 +689,6 @@ const disableGroup = async (group) => {
     });
 
     const result = await res.json();
-    console.log('Disable response:', result);
 
     if (!result.success) {
       throw new Error(result.message || "Disable failed");

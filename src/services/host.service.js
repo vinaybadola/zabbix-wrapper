@@ -15,11 +15,11 @@ export default class HostService {
         }
 
         const params = {
-            host,          
-            name,          
+            host,
+            name,
             interfaces: [
                 {
-                    type: 1,    
+                    type: 1,
                     main: 1,
                     useip: 1,
                     ip,
@@ -111,5 +111,21 @@ export default class HostService {
             },
             authToken
         });
+    }
+
+    static async getHostGroups({ authToken }) {
+        const groups = await ZabbixService.rpcCall({
+            method: "hostgroup.get",
+            params: {
+                output: ["groupid", "name"],
+                sortfield: "name"
+            },
+            authToken
+        });
+
+        return {
+            success: true,
+            data: groups
+        };
     }
 }

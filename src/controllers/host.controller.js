@@ -138,4 +138,17 @@ export default class HostController {
     }
   }
 
+  static fetchHostGroups = async (req, res, next) => {
+    try {
+      const data = await HostService.getHostGroups({
+        authToken: req.zabbix.authToken
+      });
+
+      return res.status(200).json({ success: data.success, message: "ok", data: data.data });
+    } catch (err) {
+      console.error(`Error fetching host groups : ${err.message}`);
+      next(err);
+    }
+  };
+
 }
