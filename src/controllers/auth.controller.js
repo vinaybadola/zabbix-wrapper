@@ -36,14 +36,29 @@ export default class AuthController {
 
     static logout = async (req, res, next) => {
         try {
+            const sessionId =
+                req.cookies?.zbx_session 
 
+            if (sessionId) {
+                const sessionKey = `zabbix:session:${sessionId}`;
+                await AuthService.logout(sessionKey);
+            }
 
         } catch (err) {
-            console.error(`Error occurred while logging out user : ${err.message}`);
-            next(err);
-
+            console.warn("Logout cleanup failed:", err.message);
         }
-    }
+
+        res.clearCookie("zbx_session", {
+            httpOnly: true,
+            sameSite: "strict",
+            secure: nodeEnv === "production"
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Logged out successfully"
+        });
+    };
 
     static getAllRoles = async (req, res, next) => {
         try {

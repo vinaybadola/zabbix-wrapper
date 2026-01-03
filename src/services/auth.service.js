@@ -22,6 +22,35 @@ export default class AuthService {
         return { sessionId };
     }
 
+    static async logout(sessionKey) {
+        const sessionData = await redis.get(sessionKey);
+
+        if (!sessionData) {
+            return;
+        }
+
+        let authToken;
+        try {
+            ({ authToken } = JSON.parse(sessionData));
+        } catch (e) {
+            console.warn("Invalid session data, deleting key");
+            await redis.del(sessionKey);
+            return;
+        }
+
+        try {
+            await ZabbixService.rpcCall({
+                method: "user.logout",
+                params: [],
+                authToken
+            });
+        } catch (e) {
+            console.warn("Zabbix logout failed:", e.message);
+        }
+
+        await redis.del(sessionKey);
+    }
+
     static async getRoles({ authToken }) {
         if (!authToken) {
             throw new Error("Please provide the auth token for fetchign roles!")
