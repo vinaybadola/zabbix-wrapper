@@ -10,16 +10,69 @@ export default class AuthService {
             params: { username, password }
         });
 
+        const [user] = await ZabbixService.rpcCall({
+            method: "user.get",
+            params: {
+                output: ["userid", "username", "name", "surname"],
+                filter: { username }
+            },
+            authToken
+        });
+
         const sessionId = crypto.randomUUID();
 
         await redis.set(
             `zabbix:session:${sessionId}`,
-            JSON.stringify({ authToken, username }),
+            JSON.stringify({
+                authToken,
+                user: {
+                    userid: user.userid,
+                    username: user.username,
+                    name: user.name,
+                    surname: user.surname
+                }
+            }),
             "EX",
-            1800
+            86400
         );
 
-        return { sessionId };
+        return {
+            sessionId,
+            user: {
+                username: user.username,
+                name: user.name,
+                surname: user.surname
+            }
+        };
+    }
+
+    static async logout(sessionKey) {
+        const sessionData = await redis.get(sessionKey);
+
+        if (!sessionData) {
+            return;
+        }
+
+        let authToken;
+        try {
+            ({ authToken } = JSON.parse(sessionData));
+        } catch (e) {
+            console.warn("Invalid session data, deleting key");
+            await redis.del(sessionKey);
+            return;
+        }
+
+        try {
+            await ZabbixService.rpcCall({
+                method: "user.logout",
+                params: [],
+                authToken
+            });
+        } catch (e) {
+            console.warn("Zabbix logout failed:", e.message);
+        }
+
+        await redis.del(sessionKey);
     }
 
     static async getRoles({ authToken }) {

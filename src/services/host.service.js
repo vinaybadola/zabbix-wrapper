@@ -87,18 +87,18 @@ export default class HostService {
             output: ["itemid", "name", "key_"]
         };
 
+        params.search = {
+            name: "*Bits*"
+        };
+        params.searchWildcardsEnabled = true;
+
         const cleanText = searchText
             ?.replace(/\n/g, "")
             ?.replace(/\s+/g, " ")
             ?.trim();
 
         if (cleanText) {
-            if (exact) {
-                params.filter = { [searchBy]: cleanText };
-            } else {
-                params.search = { [searchBy]: cleanText };
-                params.searchWildcardsEnabled = true;
-            }
+            params.search[searchBy] = `*${cleanText}*`;
         }
 
         console.log("FINAL PARAMS:", JSON.stringify(params, null, 2));
