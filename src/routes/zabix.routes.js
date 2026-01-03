@@ -38,6 +38,7 @@ router.delete("/user/delete", UserController.deleteClientUser);
 // User Group routes
 router.get("/users/groups", UserGroupController.userGroups);
 router.post("/user/groups/submit", UserGroupController.createClientUserGroup);
+router.put("/user/group/modify", UserGroupController.updateUserGroup);
 router.put("/user/groups/permissions", UserGroupController.updateUserGroupPermissions);
 router.delete("/user/groups/:groupId/delete", UserGroupController.deleteUserGroup);
 

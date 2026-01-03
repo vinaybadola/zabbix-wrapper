@@ -159,4 +159,63 @@ export default class UserGroupService {
             verifyResult
         };
     }
+
+    /* -------------------------
+   UPDATE USER GROUP
+--------------------------*/
+    static async updateUserGroup({ userGroupId, name, userIds = [], authToken }) {
+        if (!userGroupId) {
+            throw new Error("userGroupId is required");
+        }
+
+        const params = {
+            usrgrpid: userGroupId
+        };
+
+        if (name) {
+            params.name = name;
+        }
+
+        if (Array.isArray(userIds)) {
+            params.users = userIds.map(id => ({ userid: id }));
+        }
+
+        await ZabbixService.rpcCall({
+            method: "usergroup.update",
+            params,
+            authToken
+        });
+
+        return true;
+    }
+
+    /* -------------------------
+   UPDATE HOST GROUP PERMISSIONS
+--------------------------*/
+    static async updatePermissions({
+        userGroupId,
+        hostGroupIds,
+        permission = 2,
+        authToken
+    }) {
+        if (!userGroupId || !Array.isArray(hostGroupIds)) {
+            throw new Error("userGroupId and hostGroupIds are required");
+        }
+
+        const rights = hostGroupIds.map(id => ({
+            id: String(id),
+            permission
+        }));
+
+        await ZabbixService.rpcCall({
+            method: "usergroup.update",
+            params: {
+                usrgrpid: userGroupId,
+                hostgroup_rights: rights
+            },
+            authToken
+        });
+
+        return true;
+    }
 }

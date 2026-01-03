@@ -107,4 +107,50 @@ export default class UserGroupController {
             next(err);
         }
     };
+
+    static updateUserGroup = async (req, res, next) => {
+        try {
+            const {
+                userGroupId,
+                name,
+                userIds = [],
+                hostGroupIds = [],
+                permission = 2
+            } = req.body;
+
+            if (!userGroupId) {
+                return res.status(400).json({
+                    success: false,
+                    message: "userGroupId is required"
+                });
+            }
+
+            const authToken = req.zabbix.authToken;
+
+            await UserGroupService.updateUserGroup({
+                userGroupId,
+                name,
+                userIds,
+                authToken
+            });
+
+            if (Array.isArray(hostGroupIds) && hostGroupIds.length) {
+                await UserGroupService.updatePermissions({
+                    userGroupId,
+                    hostGroupIds,
+                    permission,
+                    authToken
+                });
+            }
+
+            res.json({
+                success: true,
+                message: "User group updated successfully"
+            });
+
+        } catch (err) {
+            console.error(`Error occurred while updating user group: ${err.message}`);
+            next(err);
+        }
+    };
 }
