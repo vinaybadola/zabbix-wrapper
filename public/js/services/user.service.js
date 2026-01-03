@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8009/api/zabbix/v1";
+const API_BASE = "http://localhost:8007/api/zabbix/v1";
 
 export const submitUser = async (payload, mode) => {
     const url = mode === "create"

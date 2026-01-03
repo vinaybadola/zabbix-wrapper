@@ -13,7 +13,7 @@ const cancelBtn = document.querySelector('.actions button[type="button"]');
 // Load roles
 export const loadRoles = async () => {
     try {
-        const res = await fetch('http://localhost:8009/api/zabbix/v1/roles', {
+        const res = await fetch('http://localhost:8007/api/zabbix/v1/roles', {
             method: "GET",
             credentials: "include"
         });

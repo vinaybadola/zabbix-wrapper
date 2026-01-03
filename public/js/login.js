@@ -14,7 +14,7 @@ form.addEventListener("submit", async (e) => {
     }
 
     try {
-        const response = await fetch("http://localhost:8009/api/zabbix/v1/login", {
+        const response = await fetch("http://localhost:8007/api/zabbix/v1/login", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

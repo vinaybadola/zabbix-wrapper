@@ -2,7 +2,7 @@ import { fetchGroups } from './groups.js';
 import { openCreateUserModal, openEditUserModal, loadRoles } from './modals/users.modal.js';
 import { deleteUser } from './services/user.service.js';
 
-const API_BASE = "http://localhost:8009/api/zabbix/v1";
+const API_BASE = "http://localhost:8007/api/zabbix/v1";
 const usersTableBody = document.querySelector("#usersTable tbody");
 
 export const handleAuthError = (status) => {
@@ -139,7 +139,6 @@ tabs.forEach(tab => {
 
 /* ---------- Dashboard Tab Handler ---------- */
 function initializeDashboardTab() {
-    console.log("📊 Dashboard tab clicked");
 
     const createDashboardBtn = document.getElementById('openModalBtn');
     if (createDashboardBtn) {
@@ -160,16 +159,12 @@ function showHideButtons(activeTab) {
     const createDashboardBtn = document.getElementById('openModalBtn');
     const createGroupBtn = document.getElementById('createGroupBtn');
 
-    console.log('showHideButtons called for tab:', activeTab); // Debug log
-
     // Reset all buttons to hidden initially
     if (addUserBtn) {
         addUserBtn.style.display = 'none';
-        console.log('Add User button hidden'); // Debug log
     }
     if (createDashboardBtn) {
         createDashboardBtn.style.display = 'none';
-        console.log('Create Dashboard button hidden'); // Debug log
     }
     if (createGroupBtn) {
         createGroupBtn.style.display = 'none';
@@ -180,7 +175,6 @@ function showHideButtons(activeTab) {
         case 'users':
             if (addUserBtn) {
                 addUserBtn.style.display = 'inline-block';
-                console.log('Add User button shown'); // Debug log
             }
             break;
 
@@ -191,7 +185,6 @@ function showHideButtons(activeTab) {
         case 'dashboards':
             if (createDashboardBtn) {
                 createDashboardBtn.style.display = 'inline-block';
-                console.log('Create Dashboard button shown'); // Debug log
             }
             break;
 

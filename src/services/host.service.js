@@ -41,7 +41,7 @@ export default class HostService {
         });
     }
 
-    static getAllHosts = async (authToken) => {
+    static getAllHosts = async ({authToken}) => {
         if (!authToken) {
             throw new Error("No authToken provided for fetching all hosts");
         }
@@ -100,8 +100,6 @@ export default class HostService {
         if (cleanText) {
             params.search[searchBy] = `*${cleanText}*`;
         }
-
-        console.log("FINAL PARAMS:", JSON.stringify(params, null, 2));
 
         return ZabbixService.rpcCall({
             method: "item.get",

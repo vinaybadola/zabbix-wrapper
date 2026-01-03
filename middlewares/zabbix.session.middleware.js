@@ -30,6 +30,7 @@ export const zabbixSessionMiddleware = async (req, res, next) => {
         next();
 
     } catch (err) {
+        console.error(`Error occurred in session middleware : ${err.message}`);
         next(err);
     }
 };

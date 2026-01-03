@@ -110,7 +110,6 @@ export default class UserService {
         }
 
         const hostGroups = await HostService.getHostGroups({authToken});
-        console.log('hostGroups', hostGroups);
         
         const hostGroupIdToName = new Map(
             hostGroups.data.map(hg => [hg.groupid, hg.name])

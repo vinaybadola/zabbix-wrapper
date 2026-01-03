@@ -4,10 +4,15 @@ import { errorHandler } from "./middlewares/error.middleware.js";
 import securityMiddleware from "./middlewares/security.middleware.js";
 const app = express();
 
-securityMiddleware(app);
 app.use(express.static("public"));
+securityMiddleware(app);
 
 app.use("/api/zabbix/v1", zabbixRoutes);
+
+app.use("/health", (req, res, next) => {
+    res.send("Report ok for zabbix")
+    next()
+})
 
 app.use(errorHandler);
 
