@@ -15,6 +15,7 @@ router.post("/login", AuthController.login);
 router.use(zabbixSessionMiddleware);
 
 router.get("/logout", AuthController.logout);
+router.get("/me", AuthController.me);
 router.get("/roles", AuthController.getAllRoles);
 
 // Host routes

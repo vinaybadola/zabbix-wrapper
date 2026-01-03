@@ -1,4 +1,5 @@
 import { nodeEnv } from "../../config/env.config.js";
+import { redis } from "../../config/redis.js";
 import AuthService from "../services/auth.service.js";
 
 export default class AuthController {
@@ -14,30 +15,30 @@ export default class AuthController {
                 });
             }
 
-            const { sessionId } = await AuthService.login(username, password);
+            const { sessionId, user } = await AuthService.login(username, password);
 
             res.cookie("zbx_session", sessionId, {
                 httpOnly: true,
                 secure: nodeEnv === "production",
                 sameSite: "lax",
-                maxAge: 60 * 60 * 1000
+                maxAge: 24 * 60 * 60 * 1000
             });
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
-                message: "Login successful"
+                message: "Login successful",
+                data: user
             });
 
         } catch (err) {
-            console.error("Zabbix login error:", err);
+            console.error("Zabbix login error:", err.message);
             next(err);
         }
     };
 
     static logout = async (req, res, next) => {
         try {
-            const sessionId =
-                req.cookies?.zbx_session 
+            const sessionId = req.cookies?.zbx_session
 
             if (sessionId) {
                 const sessionKey = `zabbix:session:${sessionId}`;
@@ -58,6 +59,33 @@ export default class AuthController {
             success: true,
             message: "Logged out successfully"
         });
+    };
+
+    static me = async (req, res, next) => {
+        try {
+            const sessionId = req.cookies?.zbx_session;
+            if (!sessionId) {
+                return res.status(401).json({ success: false });
+            }
+
+            const session = await redis.get(`zabbix:session:${sessionId}`);
+            if (!session) {
+                return res.status(401).json({ success: false });
+            }
+
+            const { user } = JSON.parse(session);
+
+            return res.json({
+                success: true,
+                user
+            });
+
+        }
+        catch (err) {
+            console.error(`Error fetching user details : ${err}`);
+            next(err);
+        }
+
     };
 
     static getAllRoles = async (req, res, next) => {
