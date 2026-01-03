@@ -313,13 +313,13 @@ export default class ZabbixDashboardService {
             params.userids = clientUserId;
         }
 
-        // 🔍 Search by dashboard name (server-side)
         if (search) {
             params.search = { name: search };
             params.searchWildcardsEnabled = true;
         }
+        params.sortfield = "dashboardid"
+        params.sortorder = "DESC"
 
-        // 1️⃣ Fetch dashboards
         const dashboards = await ZabbixService.rpcCall({
             method: "dashboard.get",
             params,
@@ -328,17 +328,15 @@ export default class ZabbixDashboardService {
 
         if (!dashboards.length) return [];
 
-        // 2️⃣ Collect unique userIds
         const userIds = [
             ...new Set(dashboards.map(d => d.userid).filter(Boolean))
         ];
 
-        // 3️⃣ Fetch usernames in ONE call
         const users = await ZabbixService.rpcCall({
             method: "user.get",
             params: {
                 userids: userIds,
-                output: ["userid", "username", "name", "surname"]
+                output: ["userid", "username", "name", "surname"],
             },
             authToken
         });
@@ -350,7 +348,6 @@ export default class ZabbixDashboardService {
             ])
         );
 
-        // 4️⃣ Final response
         return dashboards.map(dashboard => ({
             dashboardId: dashboard.dashboardid,
             name: dashboard.name,
