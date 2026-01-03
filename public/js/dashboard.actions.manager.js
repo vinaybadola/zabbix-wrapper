@@ -1,6 +1,6 @@
 import { handleAuthError } from "./dashboard.js";
 
-const API_BASE_URL = 'http://localhost:8009/api/zabbix/v1';
+const API_BASE_URL = 'http://localhost:8007/api/zabbix/v1';
 
 const state = {
     dashboardName: '',
@@ -14,8 +14,7 @@ const state = {
     currentStep: 1
 };
 
-// Add this mode variable at the top
-let MODE = 'CREATE'; // or 'EDIT'
+let MODE = 'CREATE';
 let EDIT_DASHBOARD_ID = null;
 
 const modalOverlay = document.getElementById('modalOverlay');
@@ -873,8 +872,6 @@ async function handleSubmit() {
         hostIds: state.selectedHosts.map(h => h.hostid),
         itemIds: state.selectedItems.map(i => i.itemid)
     };
-
-    console.log('Dashboard Creation Payload:', JSON.stringify(payload, null, 2));
 
     try {
         let url = `${API_BASE_URL}/dashboards/client/new`;

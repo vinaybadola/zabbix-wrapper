@@ -271,7 +271,7 @@ export const fetchGroups = async () => {
 
   groupsContainer.innerHTML = '<div class="loading">Loading groups...</div>';
   try {
-    const res = await fetch("http://localhost:8009/api/zabbix/v1/users/groups", {
+    const res = await fetch("http://localhost:8007/api/zabbix/v1/users/groups", {
       credentials: "include"
     });
     const result = await res.json();
@@ -384,7 +384,7 @@ const populateGroupForm = async (selectedUsers = [], selectedHosts = []) => {
 
   try {
     // Fetch users
-    const usersRes = await fetch("http://localhost:8009/api/zabbix/v1/users", {
+    const usersRes = await fetch("http://localhost:8007/api/zabbix/v1/users", {
       credentials: "include"
     });
     const usersResult = await usersRes.json();
@@ -405,7 +405,7 @@ const populateGroupForm = async (selectedUsers = [], selectedHosts = []) => {
     }
 
     // Fetch host groups
-    const hostRes = await fetch("http://localhost:8009/api/zabbix/v1/hosts/groups", {
+    const hostRes = await fetch("http://localhost:8007/api/zabbix/v1/hosts/groups", {
       method: "GET",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -478,7 +478,7 @@ if (groupForm) {
     try {
       if (!isEditMode) {
         // CREATE
-        const createRes = await fetch("http://localhost:8009/api/zabbix/v1/user/groups/submit", {
+        const createRes = await fetch("http://localhost:8007/api/zabbix/v1/user/groups/submit", {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -500,13 +500,12 @@ if (groupForm) {
       } else {
         // EDIT
         const userGroupId = groupIdInput ? groupIdInput.value : '';
-        console.log('Editing group:', userGroupId);
 
         if (!userGroupId) {
           throw new Error('Group ID is required for edit');
         }
 
-        const updateRes = await fetch("http://localhost:8009/api/zabbix/v1/user/groups/permissions", {
+        const updateRes = await fetch("http://localhost:8007/api/zabbix/v1/user/groups/permissions", {
           method: "PUT",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -517,7 +516,6 @@ if (groupForm) {
         });
 
         const updateResult = await updateRes.json();
-        console.log('Update response:', updateResult);
 
         if (!updateResult.success) {
           throw new Error(updateResult.message || "Update failed");
@@ -542,7 +540,6 @@ if (groupForm) {
 
 /* ---------- EDIT GROUP ---------- */
 const openEditGroup = async (group) => {
-  console.log('Opening edit modal for:', group);
 
   isEditMode = true;
 
@@ -551,22 +548,16 @@ const openEditGroup = async (group) => {
   // Set group ID and name
   if (groupIdInput) {
     groupIdInput.value = group.usrgrpid;
-    console.log('Set groupIdInput to:', group.usrgrpid);
   }
 
   if (groupNameInput) {
     groupNameInput.value = group.name || '';
     groupNameInput.disabled = true; // Edit mode mein group name change nahi kar sakte
-    console.log('Set groupNameInput to:', group.name);
   }
 
   // Get users and hosts for this group
   const selectedUsers = (group.users || []).map(u => u.userid);
   const selectedHosts = group.hostGroupIds || [];
-
-  console.log('Selected users for edit:', selectedUsers);
-  console.log('Selected hosts for edit:', selectedHosts);
-  console.log('Group data:', group);
 
   // Show modal first, then populate
   if (groupModal) {
@@ -585,12 +576,10 @@ const openEditGroup = async (group) => {
 const deleteGroup = async (group) => {
   if (!confirm(`Are you sure you want to delete group "${group.name}"?`)) return;
 
-  console.log('Deleting group ID:', group.usrgrpid);
-
   try {
     // Method 1: Try with route parameter first
     const res = await fetch(
-      `http://localhost:8009/api/zabbix/v1/user/groups/${group.usrgrpid}/delete`,
+      `http://localhost:8007/api/zabbix/v1/user/groups/${group.usrgrpid}/delete`,
       {
         method: "DELETE",
         credentials: "include"
@@ -603,12 +592,9 @@ const deleteGroup = async (group) => {
       result = await res.json();
     } catch (e) {
       // If not JSON, try alternative method
-      console.log('Response not JSON, trying alternative...');
       await deleteGroupAlternative(group);
       return;
     }
-
-    console.log('Delete response:', result);
 
     if (!result.success) {
       throw new Error(result.message || "Delete failed");
@@ -622,7 +608,6 @@ const deleteGroup = async (group) => {
 
     // If first method fails, try alternative
     if (err.message.includes('404') || err.message.includes('Not Found')) {
-      console.log('Trying alternative delete method...');
       await deleteGroupAlternative(group);
     } else {
       alert('❌ Failed to delete group: ' + err.message);
@@ -633,10 +618,9 @@ const deleteGroup = async (group) => {
 /* ---------- ALTERNATIVE DELETE METHOD ---------- */
 const deleteGroupAlternative = async (group) => {
   try {
-    console.log('Trying alternative delete method...');
 
     // Method 2: Try with body parameter (same as user delete)
-    const res = await fetch("http://localhost:8009/api/zabbix/v1/user/groups/delete", {
+    const res = await fetch("http://localhost:8007/api/zabbix/v1/user/groups/delete", {
       method: "DELETE",
       credentials: "include",
       headers: {
@@ -648,7 +632,6 @@ const deleteGroupAlternative = async (group) => {
     });
 
     const result = await res.json();
-    console.log('Alternative delete response:', result);
 
     if (!result.success) {
       throw new Error(result.message || "Delete failed");
@@ -674,9 +657,7 @@ const deleteGroupAlternative = async (group) => {
 /* ---------- DISABLE GROUP (FALLBACK) ---------- */
 const disableGroup = async (group) => {
   try {
-    console.log('Disabling group by removing permissions...');
-
-    const res = await fetch("http://localhost:8009/api/zabbix/v1/user/groups/permissions", {
+    const res = await fetch("http://localhost:8007/api/zabbix/v1/user/groups/permissions", {
       method: "PUT",
       credentials: "include",
       headers: {
@@ -724,7 +705,7 @@ const openViewGroupModal = async (group) => {
     let hostGroups = [];
     if (hostCount > 0) {
       try {
-        const hostRes = await fetch("http://localhost:8009/api/zabbix/v1/hosts/groups", {
+        const hostRes = await fetch("http://localhost:8007/api/zabbix/v1/hosts/groups", {
           credentials: "include"
         });
         const hostResult = await hostRes.json();

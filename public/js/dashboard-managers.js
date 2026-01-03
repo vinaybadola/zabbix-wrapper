@@ -1,6 +1,6 @@
 import { handleAuthError } from "./dashboard.js";
 
-const API_BASE = "http://localhost:8009/api/zabbix/v1";
+const API_BASE = "http://localhost:8007/api/zabbix/v1";
 
 class DashboardsManager {
     constructor() {
@@ -14,7 +14,6 @@ class DashboardsManager {
     }
 
     initialize() {
-        console.log("📦 Initializing dashboard manager...");
 
         this.dashboardsContainer = document.getElementById('dashboardsContainer');
         this.searchInput = document.getElementById('dashboardSearch');
@@ -22,18 +21,15 @@ class DashboardsManager {
         this.searchStats = document.getElementById('searchStats');
 
         if (!this.dashboardsContainer) {
-            console.log("⚠️ Elements not found yet");
             return;
         }
 
-        console.log("✅ All elements found, setting up...");
         this.setupDashboardFunctionality();
         this.setupSearchFunctionality();
     }
 
     setupDashboardFunctionality() {
         this.loadDashboards();
-        console.log("✅ Dashboard functionality ready");
     }
 
     setupSearchFunctionality() {
@@ -56,13 +52,10 @@ class DashboardsManager {
             }
         });
 
-        console.log("✅ Search functionality ready");
     }
 
     setupDashboardFunctionality() {
         this.loadDashboards();
-
-        console.log("✅ Dashboard functionality ready");
     }
 
     handleSearchInput(searchTerm) {
@@ -383,8 +376,6 @@ class DashboardsManager {
     }
 
     async openEditModal(dashboardId, dashboardName) {
-        console.log("✏️ Opening edit modal for dashboard:", dashboardId);
-        console.log("✏️ Opening edit modal for dashboard:", dashboardId);
 
         // Call the function from create modal file
         if (typeof window.openEditModal === 'function') {

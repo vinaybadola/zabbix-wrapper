@@ -292,7 +292,6 @@ export default class ZabbixDashboardService {
                 authToken
             });
 
-            console.log('Total dashboards:', dashboards);
             return dashboards;
         } catch (error) {
             console.error('Error debugging dashboard structure:', error);
