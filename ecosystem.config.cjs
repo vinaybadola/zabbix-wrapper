@@ -3,11 +3,14 @@ module.exports = {
         {
             name: "zabbix-backend",
             script: "server.js",
+            watch: false,
 
             // Environment
             env: {
                 NODE_ENV: "production",
-                PORT: 8007
+                PORT: 8007,
+                WATCH_MODE: true,
+                watch: true
             },
 
             env_production: {

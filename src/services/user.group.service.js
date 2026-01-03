@@ -11,7 +11,9 @@ export default class UserGroupService {
                 params: {
                     output: ["usrgrpid", "name"],
                     selectUsers: ["userid", "username", "name", "surname"],
-                    selectHostGroupRights: ["id", "permission"]
+                    selectHostGroupRights: ["id", "permission"],
+                    sortfield: "usrgrpid",
+                    sortorder: "DESC"
                 },
                 authToken
             }),
@@ -19,7 +21,9 @@ export default class UserGroupService {
         ]);
 
         return groups.map(group => {
-            const groupUsers = group.users || [];
+            const groupUsers = (group.users || [])
+                .sort((a, b) => Number(b.userid) - Number(a.userid));
+
             const hostPermissions = group.hostgroup_rights || [];
 
             return {
@@ -30,7 +34,8 @@ export default class UserGroupService {
                     username: u.username,
                     name: u.name || "",
                     surname: u.surname || "",
-                    usrgrps: users.find(user => user.userid === u.userid)?.usrgrps || []
+                    usrgrps:
+                        users.find(user => user.userid === u.userid)?.usrgrps || []
                 })),
                 hostPermissions,
                 hostGroupIds: hostPermissions.map(h => h.id)

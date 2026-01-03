@@ -109,8 +109,8 @@ export default class UserService {
             return groupsWithHosts;
         }
 
-        const hostGroups = await HostService.getHostGroups({authToken});
-        
+        const hostGroups = await HostService.getHostGroups({ authToken });
+
         const hostGroupIdToName = new Map(
             hostGroups.data.map(hg => [hg.groupid, hg.name])
         );
@@ -128,17 +128,23 @@ export default class UserService {
 
     static async getUsers({ authToken, search = null }) {
         if (!authToken) {
-            throw new Error("No auth token provided for creating user !");
+            throw new Error("No auth token provided!");
         }
+
         const params = {
-            output: ["userid", "username", "name", "surname", "roleid"],
-            selectRole: ["roleid", "name"]
+            output: ["userid", "username", "name", "surname"],
+            selectRole: ["roleid", "name"],
+            sortfield: "userid",
+            sortorder: "DESC",
         };
 
         if (search) {
-            params.filter = {
-                username: search
+            params.search = {
+                username: search,
+                name: search,
+                surname: search
             };
+            params.searchWildcardsEnabled = true;
         }
 
         return await ZabbixService.rpcCall({

@@ -1,6 +1,7 @@
 import { nodeEnv } from "../../config/env.config.js";
 import { redis } from "../../config/redis.js";
 import AuthService from "../services/auth.service.js";
+import ZabbixService from "../services/zabbix.service.js";
 
 export default class AuthController {
 
@@ -104,4 +105,60 @@ export default class AuthController {
             next(err);
         }
     }
+
+    static changeClientPassword = async (req, res, next) => {
+        try {
+            const { userid, newPassword } = req.body;
+            const authToken = req.zabbix.authToken;
+
+            if (userid === "1") {
+                throw new Error("Cannot change Super Admin password");
+            }
+
+            if (!userid) {
+                return res.status(400).json({
+                    success: false,
+                    message: "userid is required"
+                });
+            }
+
+            if (!newPassword || newPassword.length < 8) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Password must be at least 8 characters"
+                });
+            }
+
+            const users = await ZabbixService.rpcCall({
+                method: "user.get",
+                params: {
+                    userids: userid,
+                    output: ["userid"]
+                },
+                authToken
+            });
+
+            if (!users.length) {
+                throw new Error("User not found");
+            }
+
+            await ZabbixService.rpcCall({
+                method: "user.update",
+                params: {
+                    userid,
+                    passwd: newPassword
+                },
+                authToken
+            });
+
+            return res.json({
+                success: true,
+                message: "Password updated successfully"
+            });
+
+        } catch (err) {
+            console.error(`Error occurred while resetting password: ${err.message}`);
+            next(err);
+        }
+    };
 }
