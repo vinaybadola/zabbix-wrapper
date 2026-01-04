@@ -41,7 +41,7 @@ export default class HostService {
         });
     }
 
-    static getAllHosts = async ({authToken}) => {
+    static getAllHosts = async ({ authToken }) => {
         if (!authToken) {
             throw new Error("No authToken provided for fetching all hosts");
         }
@@ -133,19 +133,37 @@ export default class HostService {
         });
     }
 
-    static async getHostGroups({ authToken }) {
-        const groups = await ZabbixService.rpcCall({
+    static async getHostGroups({ authToken, search }) {
+        const params = {
+            output: ["groupid", "name"],
+            sortfield: "name"
+        };
+
+        const allGroups = await ZabbixService.rpcCall({
             method: "hostgroup.get",
-            params: {
-                output: ["groupid", "name"],
-                sortfield: "name"
-            },
+            params: params,
             authToken
         });
 
+        let filteredGroups;
+
+        if (search && search.trim() !== '') {
+            const searchLower = search.toLowerCase().trim();
+            filteredGroups = allGroups.filter(group =>
+                group.name.toLowerCase().includes(searchLower)
+            );
+        } else {
+            filteredGroups = allGroups.filter(group => {
+                const nameUpper = group.name.toUpperCase();
+                return nameUpper.includes('TNG') || nameUpper.includes('ANG');
+            });
+        }
+
         return {
             success: true,
-            data: groups
+            data: filteredGroups,
+            count: filteredGroups.length,
+            totalCount: allGroups.length
         };
     }
 }

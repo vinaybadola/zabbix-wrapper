@@ -124,7 +124,7 @@ export default class HostController {
   static fetchHostItems = async (req, res, next) => {
     try {
       const { hostIds } = req.body;
-      const {search} = req.query;
+      const { search } = req.query;
 
       const data = await HostService.fetchHostItems({
         hostIds,
@@ -143,11 +143,24 @@ export default class HostController {
 
   static fetchHostGroups = async (req, res, next) => {
     try {
-      const data = await HostService.getHostGroups({
-        authToken: req.zabbix.authToken
+      const { search } = req.query;
+      const authToken = req.zabbix.authToken;
+
+      // Get host groups ONLY
+      const groupsData = await HostService.getHostGroups({
+        authToken,
+        search: search || null
       });
 
-      return res.status(200).json({ success: data.success, message: "ok", data: data.data });
+      return res.status(200).json({
+        success: true,
+        message: "Host groups fetched successfully",
+        data: groupsData.data,
+        meta: {
+          count: groupsData.count,
+          totalAvailable: groupsData.totalCount
+        }
+      });
     } catch (err) {
       console.error(`Error fetching host groups : ${err.message}`);
       next(err);

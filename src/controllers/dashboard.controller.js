@@ -93,7 +93,7 @@ export default class DashboardController {
       const { dashboardId } = req.params;
 
       // Simple call without complex parameters
-      const result = await ZabbixDashboardService.getDashboardById({
+      const result = await ZabbixDashboardService.getDashboardInfraData({
         dashboardId,
         authToken: req.zabbix.authToken
       });
