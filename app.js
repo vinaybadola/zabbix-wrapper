@@ -7,12 +7,17 @@ const app = express();
 app.use(express.static("public"));
 securityMiddleware(app);
 
-app.use("/api/zabbix/v1", zabbixRoutes);
+app.use("/api/v1", zabbixRoutes);
 
-app.use("/health", (req, res, next) => {
+app.use("/", (req, res, next) => {
     res.send("Report ok for zabbix")
     next()
 })
+
+app.use((err, req, res, next) => {
+    console.error(`Error caught by Global middleware: ${err.message}`);
+    return res.status(500).json({ message: 'Internal Server Error', error: err.message });
+});
 
 app.use(errorHandler);
 
