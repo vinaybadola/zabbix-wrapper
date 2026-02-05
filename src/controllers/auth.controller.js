@@ -22,6 +22,7 @@ export default class AuthController {
                 httpOnly: true,
                 secure: nodeEnv === "production",
                 sameSite: "lax",
+                domain : ".gtel.in",
                 maxAge: 24 * 60 * 60 * 1000
             });
 
