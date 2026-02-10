@@ -108,6 +108,12 @@ export default class DashboardService {
                     value: 1
                 });
 
+                fields.push({
+                    type: 0, // INTEGER
+                    name: "legend_lines",
+                    value: 2
+                });
+
 
 
                 // Widget title

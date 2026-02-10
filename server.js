@@ -1,5 +1,5 @@
 import app from "./app.js";
-import { port } from "./config/env.config.js";
+import { nodeEnv, port } from "./config/env.config.js";
 
 app.use((req, res, next) => {
     if (!res.headersSent) {
@@ -23,5 +23,5 @@ process.on('unhandledRejection', (err) => {
 });
 
 app.listen(port, () => {
-    console.log(`HTTP Wrapper running on port ${port}`);
+    console.log(`HTTP Wrapper running on port ${port} with env : ${nodeEnv}`);
 });
