@@ -22,7 +22,7 @@ export default class AuthController {
                 httpOnly: true,
                 secure: nodeEnv === "production",
                 sameSite: "lax",
-                domain : ".gtel.in",
+                ...(nodeEnv === "production" && { domain: ".gtel.in" }),
                 maxAge: 24 * 60 * 60 * 1000
             });
 
@@ -54,6 +54,7 @@ export default class AuthController {
         res.clearCookie("zbx_session", {
             httpOnly: true,
             sameSite: "strict",
+            ...(nodeEnv === "production" && { domain: ".gtel.in" }),
             secure: nodeEnv === "production"
         });
 
